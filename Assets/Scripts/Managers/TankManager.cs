@@ -1,7 +1,9 @@
 ﻿using System;
+using Complete;
+using Tank;
 using UnityEngine;
 
-namespace Complete
+namespace Managers
 {
     [Serializable]
     public class TankManager
@@ -39,13 +41,12 @@ namespace Complete
             m_ColoredPlayerText = "<color=#" + ColorUtility.ToHtmlStringRGB(m_PlayerColor) + ">PLAYER " + m_PlayerNumber + "</color>";
 
             // Get all of the renderers of the tank
-            MeshRenderer[] renderers = m_Instance.GetComponentsInChildren<MeshRenderer> ();
+            var renderers = m_Instance.GetComponentsInChildren<MeshRenderer> ();
 
             // Go through all the renderers...
-            for (int i = 0; i < renderers.Length; i++)
-            {
-                // ... set their material color to the color specific to this tank
-                renderers[i].material.color = m_PlayerColor;
+            foreach (var renderer in renderers) {
+	            // ... set their material color to the color specific to this tank
+	            renderer.material.color = m_PlayerColor;
             }
         }
 

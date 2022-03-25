@@ -44,28 +44,21 @@ namespace Complete
 
         private void FindAveragePosition()
         {
-            Vector3 averagePos = new Vector3();
-            int numTargets = 0;
+            var averagePos = new Vector3();
+            var numTargets = 0;
 
             // Go through all the targets and add their positions together
-            for (int i = 0; i < m_Targets.Length; i++)
-            {
-                // If the target isn't active, go on to the next one
-                if (!m_Targets[i].gameObject.activeSelf)
-                {
-                    continue;
-                }
+            foreach (var target in m_Targets) {
+	            // If the target isn't active, go on to the next one
+	            if (!target.gameObject.activeSelf) continue;
 
-                // Add to the average and increment the number of targets in the average
-                averagePos += m_Targets[i].position;
-                numTargets++;
+	            // Add to the average and increment the number of targets in the average
+	            averagePos += target.position;
+	            numTargets++;
             }
 
             // If there are targets divide the sum of the positions by the number of them to find the average
-            if (numTargets > 0)
-            {
-                averagePos /= numTargets;
-            }
+            if (numTargets > 0) averagePos /= numTargets;
 
             // Keep the same y value
             averagePos.y = transform.position.y;
@@ -78,7 +71,7 @@ namespace Complete
         private void Zoom()
         {
             // Find the required size based on the desired position and smoothly transition to that size
-            float requiredSize = FindRequiredSize();
+            var requiredSize = FindRequiredSize();
             m_Camera.orthographicSize = Mathf.SmoothDamp (m_Camera.orthographicSize, requiredSize, ref m_ZoomSpeed, m_DampTime);
         }
 
@@ -86,31 +79,27 @@ namespace Complete
         private float FindRequiredSize ()
         {
             // Find the position the camera rig is moving towards in its local space
-            Vector3 desiredLocalPos = transform.InverseTransformPoint(m_DesiredPosition);
+            var desiredLocalPos = transform.InverseTransformPoint(m_DesiredPosition);
 
             // Start the camera's size calculation at zero
-            float size = 0f;
+            var size = 0f;
 
             // Go through all the targets...
-            for (int i = 0; i < m_Targets.Length; i++)
-            {
-                // ... and if they aren't active continue on to the next target
-                if (!m_Targets[i].gameObject.activeSelf)
-                {
-                    continue;
-                }
+            foreach (var target in m_Targets) {
+	            // ... and if they aren't active continue on to the next target
+	            if (!target.gameObject.activeSelf) continue;
 
-                // Otherwise, find the position of the target in the camera's local space
-                Vector3 targetLocalPos = transform.InverseTransformPoint (m_Targets[i].position);
+	            // Otherwise, find the position of the target in the camera's local space
+	            var targetLocalPos = transform.InverseTransformPoint (target.position);
 
-                // Find the position of the target from the desired position of the camera's local space
-                Vector3 desiredPosToTarget = targetLocalPos - desiredLocalPos;
+	            // Find the position of the target from the desired position of the camera's local space
+	            var desiredPosToTarget = targetLocalPos - desiredLocalPos;
 
-                // Choose the largest out of the current size and the distance of the tank 'up' or 'down' from the camera
-                size = Mathf.Max(size, Mathf.Abs (desiredPosToTarget.y));
+	            // Choose the largest out of the current size and the distance of the tank 'up' or 'down' from the camera
+	            size = Mathf.Max(size, Mathf.Abs (desiredPosToTarget.y));
 
-                // Choose the largest out of the current size and the calculated size based on the tank being to the left or right of the camera
-                size = Mathf.Max(size, Mathf.Abs (desiredPosToTarget.x) / m_Camera.aspect);
+	            // Choose the largest out of the current size and the calculated size based on the tank being to the left or right of the camera
+	            size = Mathf.Max(size, Mathf.Abs (desiredPosToTarget.x) / m_Camera.aspect);
             }
 
             // Add the edge buffer to the size

@@ -1,9 +1,11 @@
 using System.Collections;
+using System.Linq;
+using Complete;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace Complete
+namespace Managers
 {
     public class GameManager : MonoBehaviour
     {
@@ -40,11 +42,11 @@ namespace Complete
         private void SpawnAllTanks()
         {
             // For all the tanks...
-            for (int i = 0; i < m_Tanks.Length; i++)
+            for (var i = 0; i < m_Tanks.Length; i++)
             {
                 // ... create them, set their player number and references needed for control
                 m_Tanks[i].m_Instance =
-                    Instantiate (m_TankPrefab, m_Tanks[i].m_SpawnPoint.position, m_Tanks[i].m_SpawnPoint.rotation) as GameObject;
+                    Instantiate (m_TankPrefab, m_Tanks[i].m_SpawnPoint.position, m_Tanks[i].m_SpawnPoint.rotation);
                 m_Tanks[i].m_PlayerNumber = i + 1;
                 m_Tanks[i].Setup();
             }
@@ -54,10 +56,10 @@ namespace Complete
         private void SetCameraTargets()
         {
             // Create a collection of transforms the same size as the number of tanks
-            Transform[] targets = new Transform[m_Tanks.Length];
+            var targets = new Transform[m_Tanks.Length];
 
             // For each of these transforms...
-            for (int i = 0; i < targets.Length; i++)
+            for (var i = 0; i < targets.Length; i++)
             {
                 // ... set it to the appropriate tank transform
                 targets[i] = m_Tanks[i].m_Instance.transform;
@@ -151,7 +153,7 @@ namespace Complete
             m_GameWinner = GetGameWinner();
 
             // Get a message based on the scores and whether or not there is a game winner and display it
-            string message = EndMessage();
+            var message = EndMessage();
             m_MessageText.text = message;
 
             // Wait for the specified length of time until yielding control back to the game loop
@@ -164,58 +166,32 @@ namespace Complete
         {
             // Skip all rounds logic
 
-/*            // Start the count of tanks left at zero.
-            int numTanksLeft = 0;
+            // Start the count of tanks left at zero.
+            var numTanksLeft = m_Tanks.Count(target => target.m_Instance.activeSelf);
 
             // Go through all the tanks...
-            for (int i = 0; i < m_Tanks.Length; i++)
-            {
-                // ... and if they are active, increment the counter.
-                if (m_Tanks[i].m_Instance.activeSelf)
-                    numTanksLeft++;
-            }
 
             // If there are one or fewer tanks remaining return true, otherwise return false.
-            return numTanksLeft <= 1; */
-
-            return false;
+            return numTanksLeft <= 1;
         }
         
         
         // This function is to find out if there is a winner of the round
         // This function is called with the assumption that 1 or fewer tanks are currently active
-        private TankManager GetRoundWinner()
-        {
-            // Go through all the tanks...
-            for (int i = 0; i < m_Tanks.Length; i++)
-            {
-                // ... and if one of them is active, it is the winner so return it
-                if (m_Tanks[i].m_Instance.activeSelf)
-                {
-                    return m_Tanks[i];
-                }
-            }
+        private TankManager GetRoundWinner() {
+	        // Go through all the tanks...
+	        return m_Tanks.FirstOrDefault(t => t.m_Instance.activeSelf);
 
-            // If none of the tanks are active it is a draw so return null
-            return null;
+	        // If none of the tanks are active it is a draw so return null
         }
 
 
         // This function is to find out if there is a winner of the game
-        private TankManager GetGameWinner()
-        {
-            // Go through all the tanks...
-            for (int i = 0; i < m_Tanks.Length; i++)
-            {
-                // ... and if one of them has enough rounds to win the game, return it
-                if (m_Tanks[i].m_Wins == m_NumRoundsToWin)
-                {
-                    return m_Tanks[i];
-                }
-            }
+        private TankManager GetGameWinner() {
+	        // Go through all the tanks...
+	        return m_Tanks.FirstOrDefault(t => t.m_Wins == m_NumRoundsToWin);
 
-            // If no tanks have enough rounds to win, return null
-            return null;
+	        // If no tanks have enough rounds to win, return null
         }
 
 
@@ -223,7 +199,7 @@ namespace Complete
         private string EndMessage()
         {
             // By default when a round ends there are no winners so the default end message is a draw
-            string message = "DRAW!";
+            var message = "DRAW!";
 
             // If there is a winner then change the message to reflect that
             if (m_RoundWinner != null)
@@ -233,10 +209,7 @@ namespace Complete
             message += "\n\n\n\n";
 
             // Go through all the tanks and add each of their scores to the message
-            for (int i = 0; i < m_Tanks.Length; i++)
-            {
-                message += m_Tanks[i].m_ColoredPlayerText + ": " + m_Tanks[i].m_Wins + " WINS\n";
-            }
+            message = m_Tanks.Aggregate(message, (current, t) => current + (t.m_ColoredPlayerText + ": " + t.m_Wins + " WINS\n"));
 
             // If there is a game winner, change the entire message to reflect that
             if (m_GameWinner != null)
@@ -247,30 +220,18 @@ namespace Complete
 
 
         // This function is used to turn all the tanks back on and reset their positions and properties
-        private void ResetAllTanks()
-        {
-            for (int i = 0; i < m_Tanks.Length; i++)
-            {
-                m_Tanks[i].Reset();
-            }
+        private void ResetAllTanks() {
+	        foreach (var tank in m_Tanks) tank.Reset();
         }
 
 
-        private void EnableTankControl()
-        {
-            for (int i = 0; i < m_Tanks.Length; i++)
-            {
-                m_Tanks[i].EnableControl();
-            }
+        private void EnableTankControl() {
+	        foreach (var tank in m_Tanks) tank.EnableControl();
         }
 
 
-        private void DisableTankControl()
-        {
-            for (int i = 0; i < m_Tanks.Length; i++)
-            {
-                m_Tanks[i].DisableControl();
-            }
+        private void DisableTankControl() {
+	        foreach (var tank in m_Tanks) tank.DisableControl();
         }
     }
 }

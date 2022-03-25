@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Complete
+namespace UI
 {
     public class UIDirectionControl : MonoBehaviour
     {
@@ -13,10 +13,7 @@ namespace Complete
         private Quaternion m_RelativeRotation;          // The local rotatation at the start of the scene.
 
 
-        private void Start ()
-        {
-            m_RelativeRotation = transform.parent.localRotation;
-        }
+        private void Start () => m_RelativeRotation = transform.parent.localRotation;
 
 
         private void Update ()

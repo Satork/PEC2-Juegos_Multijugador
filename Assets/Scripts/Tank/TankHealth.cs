@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace Complete
+namespace Tank
 {
     public class TankHealth : MonoBehaviour
     {
@@ -52,10 +52,7 @@ namespace Complete
             SetHealthUI();
 
             // If the current health is at or below zero and it has not yet been registered, call OnDeath
-            if (m_CurrentHealth <= 0f && !m_Dead)
-            {
-                OnDeath();
-            }
+            if (m_CurrentHealth <= 0f && !m_Dead) OnDeath();
         }
 
 
@@ -64,7 +61,7 @@ namespace Complete
             // Set the slider's value appropriately
             m_Slider.value = m_CurrentHealth;
 
-            // Interpolate the color of the bar between the choosen colours based on the current percentage of the starting health
+            // Interpolate the color of the bar between the chosen colours based on the current percentage of the starting health
             m_FillImage.color = Color.Lerp (m_ZeroHealthColor, m_FullHealthColor, m_CurrentHealth / m_StartingHealth);
         }
 

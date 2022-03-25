@@ -20,7 +20,7 @@ namespace Complete
 
         private float m_CurrentLaunchForce;         // The force that will be given to the shell when the fire button is released
         private InputAction m_FireAction;           // Fire Action reference (Unity 2020 New Input System)
-        private bool isDisabled = false;            // To avoid enabling / disabling Input System when tank is destroyed
+        private bool isDisabled;					// To avoid enabling / disabling Input System when tank is destroyed
 
         private void OnEnable()
         {
@@ -31,19 +31,16 @@ namespace Complete
             isDisabled = false;
         }
 
-        private void OnDisable()
-        {
-            isDisabled = true;
-        }
+        private void OnDisable() => isDisabled = true;
 
         private void Start()
         {
             // Unity 2020 New Input System
             // Get a reference to the EventSystem for this player
-            EventSystem ev = GameObject.Find ("EventSystem").GetComponent<EventSystem>();
+            var ev = GameObject.Find ("EventSystem").GetComponent<EventSystem>();
 
             // Find the Action Map for the Tank actions and enable it
-            InputActionMap playerActionMap = ev.GetComponent<PlayerInput>().actions.FindActionMap ("Tank");
+            var playerActionMap = ev.GetComponent<PlayerInput>().actions.FindActionMap ("Tank");
             playerActionMap.Enable();
 
             // Find the 'Fire' action
@@ -55,24 +52,17 @@ namespace Complete
 
 
         // Event called when this player's 'Fire' action is triggered by the New Input System
-        public void OnFire(InputAction.CallbackContext obj)
-        {
-            if (!isDisabled)
-            {
-                // When the value read is higher than the default Button Press Point, the key has been pressed
-                if (obj.ReadValue<float>() >= InputSystem.settings.defaultButtonPressPoint)
-                {
-                    Fire();
-                }
-            }
+        public void OnFire(InputAction.CallbackContext obj) {
+	        if (isDisabled) return;
+	        // When the value read is higher than the default Button Press Point, the key has been pressed
+	        if (obj.ReadValue<float>() >= InputSystem.settings.defaultButtonPressPoint) Fire();
         }
 
         private void Fire()
         {
             // Create an instance of the shell and store a reference to it's rigidbody
-            Rigidbody shellInstance;
 
-            shellInstance = Instantiate(m_Shell, m_FireTransform.position, m_FireTransform.rotation) as Rigidbody;
+            var shellInstance = Instantiate(m_Shell, m_FireTransform.position, m_FireTransform.rotation);
 
             // Set the shell's velocity to the launch force in the fire position's forward direction
             shellInstance.velocity = m_CurrentLaunchForce * m_FireTransform.forward;

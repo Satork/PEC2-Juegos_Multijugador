@@ -2,7 +2,7 @@
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
-namespace Complete
+namespace Tank
 {
     public class TankMovement : MonoBehaviour
     {
@@ -21,13 +21,10 @@ namespace Complete
         private ParticleSystem[] m_particleSystems; // References to all the particles systems used by the Tanks
         private InputAction m_MoveAction;           // Move Action reference (Unity 2020 New Input System)
         private InputAction m_TurnAction;           // Turn Action reference (Unity 2020 New Input System)
-        private bool isDisabled = false;            // To avoid enabling / disabling Input System when tank is destroyed
+        private bool isDisabled;            // To avoid enabling / disabling Input System when tank is destroyed
 
 
-        private void Awake()
-        {
-            m_Rigidbody = GetComponent<Rigidbody>();
-        }
+        private void Awake() => m_Rigidbody = GetComponent<Rigidbody>();
 
 
         private void OnEnable()
@@ -44,10 +41,7 @@ namespace Complete
             // it "think" it move from (0,0,0) to the spawn point, creating a huge trail of smoke
             m_particleSystems = GetComponentsInChildren<ParticleSystem>();
 
-            for (int i = 0; i < m_particleSystems.Length; ++i)
-            {
-                m_particleSystems[i].Play();
-            }
+            foreach (var system in m_particleSystems) system.Play();
 
             isDisabled = false;
         }
@@ -59,10 +53,7 @@ namespace Complete
             m_Rigidbody.isKinematic = true;
 
             // Stop all particle system so it "reset" it's position to the actual one instead of thinking we moved when spawning
-            for (int i = 0; i < m_particleSystems.Length; ++i)
-            {
-                m_particleSystems[i].Stop();
-            }
+            foreach (var system in m_particleSystems) system.Stop();
 
             isDisabled = true;
         }
@@ -75,10 +66,10 @@ namespace Complete
 
             // Unity 2020 New Input System
             // Get a reference to the MultiplayerEventSystem for this player
-            EventSystem ev = GameObject.Find ("EventSystem").GetComponent<EventSystem>();
+            var ev = GameObject.Find ("EventSystem").GetComponent<EventSystem>();
 
             // Find the Action Map for the Tank actions and enable it
-            InputActionMap playerActionMap = ev.GetComponent<PlayerInput>().actions.FindActionMap ("Tank");
+            var playerActionMap = ev.GetComponent<PlayerInput>().actions.FindActionMap ("Tank");
             playerActionMap.Enable();
 
             // Find the 'Move' action
@@ -115,27 +106,21 @@ namespace Complete
         private void EngineAudio()
         {
             // If there is no input (the tank is stationary)...
-            if (Mathf.Abs(m_MovementInputValue) < 0.1f && Mathf.Abs(m_TurnInputValue) < 0.1f)
-            {
-                // ... and if the audio source is currently playing the driving clip...
-                if (m_MovementAudio.clip == m_EngineDriving)
-                {
-                    // ... change the clip to idling and play it
-                    m_MovementAudio.clip = m_EngineIdling;
-                    m_MovementAudio.pitch = Random.Range(m_OriginalPitch - m_PitchRange, m_OriginalPitch + m_PitchRange);
-                    m_MovementAudio.Play();
-                }
+            if (Mathf.Abs(m_MovementInputValue) < 0.1f && Mathf.Abs(m_TurnInputValue) < 0.1f) {
+	            // ... and if the audio source is currently playing the driving clip...
+	            if (m_MovementAudio.clip != m_EngineDriving) return;
+	            // ... change the clip to idling and play it
+                m_MovementAudio.clip = m_EngineIdling;
+                m_MovementAudio.pitch = Random.Range(m_OriginalPitch - m_PitchRange, m_OriginalPitch + m_PitchRange);
+                m_MovementAudio.Play();
             }
-            else
-            {
-                // Otherwise if the tank is moving and if the idling clip is currently playing...
-                if (m_MovementAudio.clip == m_EngineIdling)
-                {
-                    // ... change the clip to driving and play.
-                    m_MovementAudio.clip = m_EngineDriving;
-                    m_MovementAudio.pitch = Random.Range(m_OriginalPitch - m_PitchRange, m_OriginalPitch + m_PitchRange);
-                    m_MovementAudio.Play();
-                }
+            else {
+	            // Otherwise if the tank is moving and if the idling clip is currently playing...
+	            if (m_MovementAudio.clip != m_EngineIdling) return;
+	            // ... change the clip to driving and play.
+                m_MovementAudio.clip = m_EngineDriving;
+                m_MovementAudio.pitch = Random.Range(m_OriginalPitch - m_PitchRange, m_OriginalPitch + m_PitchRange);
+                m_MovementAudio.Play();
             }
         }
 
@@ -148,32 +133,26 @@ namespace Complete
         }
 
 
-        private void Move()
-        {
-            if (!isDisabled)
-            {
-                // Create a vector in the direction the tank is facing with a magnitude based on the input, speed and the time between frames
-                Vector3 movement = transform.forward * m_MovementInputValue * m_Speed * Time.deltaTime;
+        private void Move() {
+	        if (isDisabled) return;
+	        // Create a vector in the direction the tank is facing with a magnitude based on the input, speed and the time between frames
+	        var movement = transform.forward * m_MovementInputValue * m_Speed * Time.deltaTime;
 
-                // Apply this movement to the rigidbody's position
-                m_Rigidbody.MovePosition(m_Rigidbody.position + movement);
-            }
+	        // Apply this movement to the rigidbody's position
+	        m_Rigidbody.MovePosition(m_Rigidbody.position + movement);
         }
 
 
-        private void Turn()
-        {
-            if (!isDisabled)
-            {
-                // Determine the number of degrees to be turned based on the input, speed and time between frames
-                float turn = m_TurnInputValue * m_TurnSpeed * Time.deltaTime;
+        private void Turn() {
+	        if (isDisabled) return;
+	        // Determine the number of degrees to be turned based on the input, speed and time between frames
+	        var turn = m_TurnInputValue * m_TurnSpeed * Time.deltaTime;
 
-                // Make this into a rotation in the y axis.
-                Quaternion turnRotation = Quaternion.Euler(0f, turn, 0f);
+	        // Make this into a rotation in the y axis.
+	        var turnRotation = Quaternion.Euler(0f, turn, 0f);
 
-                // Apply this rotation to the rigidbody's rotation
-                m_Rigidbody.MoveRotation(m_Rigidbody.rotation * turnRotation);
-            }
+	        // Apply this rotation to the rigidbody's rotation
+	        m_Rigidbody.MoveRotation(m_Rigidbody.rotation * turnRotation);
         }
     }
 }
