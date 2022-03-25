@@ -1,2 +1,2 @@
-# PEC2-Juegos_Multijugador
- PEC2 de la asignatura Juegos Multijugador
+# PAC2-base
+B2.503 PAC2 Base Project
