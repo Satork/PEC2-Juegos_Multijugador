@@ -114,15 +114,17 @@ namespace Mirror.Weaver.Tests
         static void CheckAddedCode(string addedString, string className, string methodName)
         {
             string assemblyName = Path.Combine(WeaverAssembler.OutputDirectory, WeaverAssembler.OutputFile);
-            using AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(assemblyName);
-            TypeDefinition type = assembly.MainModule.GetType(className);
-            MethodDefinition method = type.Methods.First(m => m.Name == methodName);
-            MethodBody body = method.Body;
+            using (AssemblyDefinition assembly = AssemblyDefinition.ReadAssembly(assemblyName))
+            {
+                TypeDefinition type = assembly.MainModule.GetType(className);
+                MethodDefinition method = type.Methods.First(m => m.Name == methodName);
+                MethodBody body = method.Body;
 
-            Instruction top = body.Instructions[0];
+                Instruction top = body.Instructions[0];
 
-            Assert.AreEqual(top.OpCode, OpCodes.Call);
-            Assert.AreEqual(top.Operand.ToString(), addedString);
+                Assert.AreEqual(top.OpCode, OpCodes.Call);
+                Assert.AreEqual(top.Operand.ToString(), addedString);
+            }
         }
     }
 }

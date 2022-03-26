@@ -6,22 +6,22 @@ namespace Mirror.Tests
 {
     public class MultiplexTest : MirrorTest
     {
-	    private Transport m_Transport1;
-        private Transport m_Transport2;
-        private MultiplexTransport m_Transport;
+        Transport transport1;
+        Transport transport2;
+        new MultiplexTransport transport;
 
         [SetUp]
         public void Setup()
         {
             base.SetUp();
 
-            m_Transport = holder.AddComponent<MultiplexTransport>();
+            transport = holder.AddComponent<MultiplexTransport>();
 
-            m_Transport1 = Substitute.For<Transport>();
-            m_Transport2 = Substitute.For<Transport>();
-            m_Transport.transports = new[] { m_Transport1, m_Transport2 };
+            transport1 = Substitute.For<Transport>();
+            transport2 = Substitute.For<Transport>();
+            transport.transports = new[] { transport1, transport2 };
 
-            m_Transport.Awake();
+            transport.Awake();
         }
 
         [TearDown]
@@ -31,30 +31,30 @@ namespace Mirror.Tests
         [Test]
         public void TestAvailable()
         {
-            m_Transport1.Available().Returns(true);
-            m_Transport2.Available().Returns(false);
-            Assert.That(m_Transport.Available());
+            transport1.Available().Returns(true);
+            transport2.Available().Returns(false);
+            Assert.That(transport.Available());
         }
 
         // A Test behaves as an ordinary method
         [Test]
         public void TestNotAvailable()
         {
-            m_Transport1.Available().Returns(false);
-            m_Transport2.Available().Returns(false);
-            Assert.That(m_Transport.Available(), Is.False);
+            transport1.Available().Returns(false);
+            transport2.Available().Returns(false);
+            Assert.That(transport.Available(), Is.False);
         }
 
         // A Test behaves as an ordinary method
         [Test]
         public void TestConnect()
         {
-            m_Transport1.Available().Returns(false);
-            m_Transport2.Available().Returns(true);
-            m_Transport.ClientConnect("some.server.com");
+            transport1.Available().Returns(false);
+            transport2.Available().Returns(true);
+            transport.ClientConnect("some.server.com");
 
-            m_Transport1.DidNotReceive().ClientConnect(Arg.Any<string>());
-            m_Transport2.Received().ClientConnect("some.server.com");
+            transport1.DidNotReceive().ClientConnect(Arg.Any<string>());
+            transport2.Received().ClientConnect("some.server.com");
         }
 
         // A Test behaves as an ordinary method
@@ -63,12 +63,12 @@ namespace Mirror.Tests
         {
             Uri uri = new Uri("tcp://some.server.com");
 
-            m_Transport1.Available().Returns(true);
-            m_Transport2.Available().Returns(true);
+            transport1.Available().Returns(true);
+            transport2.Available().Returns(true);
 
-            m_Transport.ClientConnect(uri);
-            m_Transport1.Received().ClientConnect(uri);
-            m_Transport2.DidNotReceive().ClientConnect(uri);
+            transport.ClientConnect(uri);
+            transport1.Received().ClientConnect(uri);
+            transport2.DidNotReceive().ClientConnect(uri);
         }
 
 
@@ -78,84 +78,84 @@ namespace Mirror.Tests
         {
             Uri uri = new Uri("ws://some.server.com");
 
-            m_Transport1.Available().Returns(true);
+            transport1.Available().Returns(true);
 
             // first transport does not support websocket
-            m_Transport1
+            transport1
                 .When(x => x.ClientConnect(uri))
                 .Do(x => { throw new ArgumentException("Scheme not supported"); });
 
-            m_Transport2.Available().Returns(true);
+            transport2.Available().Returns(true);
 
-            m_Transport.ClientConnect(uri);
-            m_Transport2.Received().ClientConnect(uri);
+            transport.ClientConnect(uri);
+            transport2.Received().ClientConnect(uri);
         }
 
         [Test]
         public void TestConnected()
         {
-            m_Transport1.Available().Returns(true);
-            m_Transport.ClientConnect("some.server.com");
+            transport1.Available().Returns(true);
+            transport.ClientConnect("some.server.com");
 
-            m_Transport1.ClientConnected().Returns(true);
+            transport1.ClientConnected().Returns(true);
 
-            Assert.That(m_Transport.ClientConnected());
+            Assert.That(transport.ClientConnected());
         }
 
         [Test]
         public void TestDisconnect()
         {
-            m_Transport1.Available().Returns(true);
-            m_Transport.ClientConnect("some.server.com");
+            transport1.Available().Returns(true);
+            transport.ClientConnect("some.server.com");
 
-            m_Transport.ClientDisconnect();
+            transport.ClientDisconnect();
 
-            m_Transport1.Received().ClientDisconnect();
+            transport1.Received().ClientDisconnect();
         }
 
         [Test]
         public void TestClientSend()
         {
-            m_Transport1.Available().Returns(true);
-            m_Transport.ClientConnect("some.server.com");
+            transport1.Available().Returns(true);
+            transport.ClientConnect("some.server.com");
 
             byte[] data = { 1, 2, 3 };
             ArraySegment<byte> segment = new ArraySegment<byte>(data);
 
-            m_Transport.ClientSend(segment, 3);
+            transport.ClientSend(segment, 3);
 
-            m_Transport1.Received().ClientSend(segment, 3);
+            transport1.Received().ClientSend(segment, 3);
         }
 
         [Test]
         public void TestClient1Connected()
         {
-            m_Transport1.Available().Returns(true);
-            m_Transport2.Available().Returns(true);
+            transport1.Available().Returns(true);
+            transport2.Available().Returns(true);
 
             Action callback = Substitute.For<Action>();
             // find available
-            m_Transport.Awake();
+            transport.Awake();
             // set event and connect to give event to inner
-            m_Transport.OnClientConnected = callback;
-            m_Transport.ClientConnect("localhost");
-            m_Transport1.OnClientConnected.Invoke();
+            transport.OnClientConnected = callback;
+            transport.ClientConnect("localhost");
+            transport1.OnClientConnected.Invoke();
             callback.Received().Invoke();
         }
 
         [Test]
         public void TestClient2Connected()
         {
-            m_Transport1.Available().Returns(false);
-            m_Transport2.Available().Returns(true);
+            transport1.Available().Returns(false);
+            transport2.Available().Returns(true);
 
             Action callback = Substitute.For<Action>();
             // find available
-            m_Transport.Awake();
+            transport.Awake();
             // set event and connect to give event to inner
-            m_Transport.OnClientConnected = callback;
-            m_Transport.ClientConnect("localhost");
-            m_Transport2.OnClientConnected.Invoke();
+            transport.OnClientConnected = callback;
+            transport.ClientConnect("localhost");
+            transport2.OnClientConnected.Invoke();
             callback.Received().Invoke();
         }
 
@@ -168,16 +168,16 @@ namespace Mirror.Tests
             // on connect, send a message back
             void SendMessage(int connectionId)
             {
-                m_Transport.ServerSend(connectionId, segment, 5);
+                transport.ServerSend(connectionId, segment, 5);
             }
 
             // set event and Start to give event to inner
-            m_Transport.OnServerConnected = SendMessage;
-            m_Transport.ServerStart();
+            transport.OnServerConnected = SendMessage;
+            transport.ServerStart();
 
-            m_Transport1.OnServerConnected.Invoke(1);
+            transport1.OnServerConnected.Invoke(1);
 
-            m_Transport1.Received().ServerSend(1, segment, 5);
+            transport1.Received().ServerSend(1, segment, 5);
         }
     }
 }
