@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Castle.Core.Internal;
 using Complete;
 using Mirror;
 using UnityEngine;
@@ -111,7 +110,7 @@ namespace Managers
         }
 
         private void UpdateCameraTargets() {
-	        if (m_Tanks.IsNullOrEmpty()) {
+	        if (m_Tanks.Count <= 0) {
 		        m_CameraControl.m_Targets = null;
 		        return;
 	        }

@@ -1,5 +1,4 @@
-﻿using Castle.Core.Internal;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Complete
 {
@@ -45,7 +44,7 @@ namespace Complete
 
         private void FindAveragePosition()
         {
-	        if (m_Targets.IsNullOrEmpty()) {
+	        if (m_Targets == null) {
 		        return;
 	        }
 	        
@@ -88,7 +87,7 @@ namespace Complete
 
             // Start the camera's size calculation at zero
             var size = 0f;
-            if (!m_Targets.IsNullOrEmpty()) {
+            if (m_Targets != null) {
 	            // Go through all the targets...
 	            foreach (var target in m_Targets) {
 		            // ... and if they aren't active continue on to the next target
