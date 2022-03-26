@@ -1,21 +1,28 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using Castle.Core.Internal;
 using Complete;
+using Mirror;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace Managers
 {
-    public class GameManager : MonoBehaviour
+    public class GameManager : NetworkManager
     {
         public int m_NumRoundsToWin = 5;            // The number of rounds a single player has to win to win the game
         public float m_StartDelay = 3f;             // The delay between the start of RoundStarting and RoundPlaying phases
         public float m_EndDelay = 3f;               // The delay between the end of RoundPlaying and RoundEnding phases
         public CameraControl m_CameraControl;       // Reference to the CameraControl script for control during different phases
         public Text m_MessageText;                  // Reference to the overlay Text to display winning text, etc
-        public GameObject m_TankPrefab;             // Reference to the prefab the players will control
-        public TankManager[] m_Tanks;               // A collection of managers for enabling and disabling different aspects of the tanks
+		//public GameObject m_TankPrefab;             // Reference to the prefab the players will control
+
+
+        private List<TankManager> m_Tanks;               // A collection of managers for enabling and disabling different aspects of the tanks
 
         
         private int m_RoundNumber;                  // Which round the game is currently on
@@ -23,26 +30,99 @@ namespace Managers
         private WaitForSeconds m_EndWait;           // Used to have a delay whilst the round or game ends
         private TankManager m_RoundWinner;          // Reference to the winner of the current round.  Used to make an announcement of who won
         private TankManager m_GameWinner;           // Reference to the winner of the game.  Used to make an announcement of who won
+        private int id;
 
+        public struct SpawnTank : NetworkMessage {
+	        public TankManager manager;
+        }
 
-        private void Start()
-        {
+        public override void OnStartServer() {
+	        base.OnStartServer();
+	        
+	        NetworkServer.RegisterHandler<SpawnTank>(OnSpawnTank);
+        }
+
+        public override void Start() {
             // Create the delays so they only have to be made once
             m_StartWait = new WaitForSeconds (m_StartDelay);
             m_EndWait = new WaitForSeconds (m_EndDelay);
 
-            SpawnAllTanks();
-            SetCameraTargets();
+            id = 1;
+            m_Tanks = new List<TankManager>();
+            //SpawnAllTanks();
+            //SetCameraTargets();
 
             // Once the tanks have been created and the camera is using them as targets, start the game
-            StartCoroutine (GameLoop ());
         }
 
+        public override void OnServerConnect(NetworkConnectionToClient conn) {
+	        StartCoroutine (GameLoop ());
+	        base.OnServerConnect(conn);
+        }
 
+        public override void OnClientConnect() {
+	        base.OnClientConnect();
+	        var manager = new TankManager {
+		        //TODO: add info when player spawn like name and color
+		        m_PlayerNumber = id,
+		        m_SpawnPoint = GetStartPosition()
+	        };
+	        var spawnMessage = new SpawnTank {
+				manager = manager
+	        };
+	        id++;
+	        
+	        NetworkClient.Send(spawnMessage);
+        }
+
+        private void OnSpawnTank(NetworkConnectionToClient conn, SpawnTank message) {
+
+	        if (playerPrefab == null) return;
+	        var manager = message.manager;
+	        var spawnPoint = manager.m_SpawnPoint;
+	        
+	        manager.m_Instance = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
+	        manager.Setup();
+	        
+	        m_Tanks.Add(manager);
+	        UpdateCameraTargets();
+	        NetworkServer.AddPlayerForConnection(conn, manager.m_Instance);
+        }
+
+        public override void OnClientDisconnect() {
+	        try {
+		        var manager = NetworkClient.localPlayer.GetComponent<TankManager>();
+		        if (manager != null) {
+			        m_Tanks.Remove(manager);
+			        UpdateCameraTargets();
+		        }
+	        }
+	        catch {
+		        // ignored
+	        }
+        
+	        base.OnClientDisconnect();
+        }
+		
+        public override void OnServerDisconnect(NetworkConnectionToClient conn) {
+	        m_Tanks.Clear();
+	        UpdateCameraTargets();
+	        base.OnServerDisconnect(conn);
+        }
+
+        private void UpdateCameraTargets() {
+	        if (m_Tanks.IsNullOrEmpty()) {
+		        m_CameraControl.m_Targets = null;
+		        return;
+	        }
+	        m_CameraControl.m_Targets = m_Tanks.Select(i => i.m_Instance.transform).ToArray();
+        }
+
+        /*[Obsolete]
         private void SpawnAllTanks()
         {
             // For all the tanks...
-            for (var i = 0; i < m_Tanks.Length; i++)
+            for (var i = 0; i < m_Tanks.Count; i++)
             {
                 // ... create them, set their player number and references needed for control
                 m_Tanks[i].m_Instance =
@@ -50,24 +130,23 @@ namespace Managers
                 m_Tanks[i].m_PlayerNumber = i + 1;
                 m_Tanks[i].Setup();
             }
-        }
+        }*/
 
-
+        /*[Obsolete]
         private void SetCameraTargets()
         {
             // Create a collection of transforms the same size as the number of tanks
-            var targets = new Transform[m_Tanks.Length];
+            var targets = new Transform[m_Tanks.Count];
 
             // For each of these transforms...
-            for (var i = 0; i < targets.Length; i++)
-            {
+            for (var i = 0; i < targets.Length; i++) {
                 // ... set it to the appropriate tank transform
                 targets[i] = m_Tanks[i].m_Instance.transform;
             }
 
             // These are the targets the camera should follow
             m_CameraControl.m_Targets = targets;
-        }
+        }*/
 
 
         // This is called from start and will run each phase of the game one after another
@@ -95,7 +174,6 @@ namespace Managers
                 StartCoroutine (GameLoop());
             }
         }
-
 
         private IEnumerator RoundStarting()
         {
@@ -126,7 +204,7 @@ namespace Managers
             // While there is not one tank left...
             while (!OneTankLeft())
             {
-                // ... return on the next frame
+	            // ... return on the next frame
                 yield return null;
             }
         }
@@ -166,13 +244,15 @@ namespace Managers
         {
             // Skip all rounds logic
 
-            // Start the count of tanks left at zero.
-            var numTanksLeft = m_Tanks.Count(target => target.m_Instance.activeSelf);
+            // // Start the count of tanks left at zero.
+            // var numTanksLeft = m_Tanks.Count(target => target.m_Instance.activeSelf);
+            //
+            // // Go through all the tanks...
+            //
+            // // If there are one or fewer tanks remaining return true, otherwise return false.
+            // return numTanksLeft <= 1;
 
-            // Go through all the tanks...
-
-            // If there are one or fewer tanks remaining return true, otherwise return false.
-            return numTanksLeft <= 1;
+            return false;
         }
         
         

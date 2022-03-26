@@ -1,11 +1,12 @@
-﻿using UnityEngine;
+﻿using Mirror;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Complete
 {
-    public class TankShooting : MonoBehaviour
+    public class TankShooting : NetworkBehaviour
     {
         public int m_PlayerNumber = 1;              // Used to identify the different players
         public Rigidbody m_Shell;                   // Prefab of the shell
@@ -53,13 +54,12 @@ namespace Complete
 
         // Event called when this player's 'Fire' action is triggered by the New Input System
         public void OnFire(InputAction.CallbackContext obj) {
-	        if (isDisabled) return;
+	        if (isDisabled || !isLocalPlayer) return;
 	        // When the value read is higher than the default Button Press Point, the key has been pressed
 	        if (obj.ReadValue<float>() >= InputSystem.settings.defaultButtonPressPoint) Fire();
         }
 
-        private void Fire()
-        {
+        private void Fire() {
             // Create an instance of the shell and store a reference to it's rigidbody
 
             var shellInstance = Instantiate(m_Shell, m_FireTransform.position, m_FireTransform.rotation);

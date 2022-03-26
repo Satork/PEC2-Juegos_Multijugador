@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Castle.Core.Internal;
+using UnityEngine;
 
 namespace Complete
 {
@@ -44,6 +45,10 @@ namespace Complete
 
         private void FindAveragePosition()
         {
+	        if (m_Targets.IsNullOrEmpty()) {
+		        return;
+	        }
+	        
             var averagePos = new Vector3();
             var numTargets = 0;
 
@@ -83,23 +88,24 @@ namespace Complete
 
             // Start the camera's size calculation at zero
             var size = 0f;
+            if (!m_Targets.IsNullOrEmpty()) {
+	            // Go through all the targets...
+	            foreach (var target in m_Targets) {
+		            // ... and if they aren't active continue on to the next target
+		            if (!target.gameObject.activeSelf) continue;
 
-            // Go through all the targets...
-            foreach (var target in m_Targets) {
-	            // ... and if they aren't active continue on to the next target
-	            if (!target.gameObject.activeSelf) continue;
+		            // Otherwise, find the position of the target in the camera's local space
+		            var targetLocalPos = transform.InverseTransformPoint(target.position);
 
-	            // Otherwise, find the position of the target in the camera's local space
-	            var targetLocalPos = transform.InverseTransformPoint (target.position);
+		            // Find the position of the target from the desired position of the camera's local space
+		            var desiredPosToTarget = targetLocalPos - desiredLocalPos;
 
-	            // Find the position of the target from the desired position of the camera's local space
-	            var desiredPosToTarget = targetLocalPos - desiredLocalPos;
+		            // Choose the largest out of the current size and the distance of the tank 'up' or 'down' from the camera
+		            size = Mathf.Max(size, Mathf.Abs(desiredPosToTarget.y));
 
-	            // Choose the largest out of the current size and the distance of the tank 'up' or 'down' from the camera
-	            size = Mathf.Max(size, Mathf.Abs (desiredPosToTarget.y));
-
-	            // Choose the largest out of the current size and the calculated size based on the tank being to the left or right of the camera
-	            size = Mathf.Max(size, Mathf.Abs (desiredPosToTarget.x) / m_Camera.aspect);
+		            // Choose the largest out of the current size and the calculated size based on the tank being to the left or right of the camera
+		            size = Mathf.Max(size, Mathf.Abs(desiredPosToTarget.x) / m_Camera.aspect);
+	            }
             }
 
             // Add the edge buffer to the size

@@ -13,6 +13,7 @@ namespace Managers
         // and whether or not players have control of their tank in the 
         // different phases of the game
 
+        public string m_PlayerName;
         public Color m_PlayerColor;                             // This is the color this tank will be tinted
         public Transform m_SpawnPoint;                          // The position and direction the tank will have when it spawns
         [HideInInspector] public int m_PlayerNumber;            // This specifies which player this the manager for

@@ -1,9 +1,11 @@
-﻿using UnityEngine;
+﻿using System;
+using Mirror;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace Tank
 {
-    public class TankHealth : MonoBehaviour
+    public class TankHealth : NetworkBehaviour
     {
         public float m_StartingHealth = 100f;               // The amount of health each tank starts with
         public Slider m_Slider;                             // The slider to represent how much health the tank currently has
@@ -34,7 +36,7 @@ namespace Tank
 
         private void OnEnable()
         {
-            // When the tank is enabled, reset the tank's health and whether or not it's dead
+	        // When the tank is enabled, reset the tank's health and whether or not it's dead
             m_CurrentHealth = m_StartingHealth;
             m_Dead = false;
 
@@ -43,9 +45,9 @@ namespace Tank
         }
 
 
-        public void TakeDamage (float amount)
-        {
-            // Reduce current health by the amount of damage done
+        public void TakeDamage (float amount) {
+
+	        // Reduce current health by the amount of damage done
             m_CurrentHealth -= amount;
 
             // Change the UI elements appropriately
@@ -58,7 +60,7 @@ namespace Tank
 
         private void SetHealthUI()
         {
-            // Set the slider's value appropriately
+	        // Set the slider's value appropriately
             m_Slider.value = m_CurrentHealth;
 
             // Interpolate the color of the bar between the chosen colours based on the current percentage of the starting health
@@ -68,7 +70,7 @@ namespace Tank
 
         private void OnDeath ()
         {
-            // Set the flag so that this function is only called once
+	        // Set the flag so that this function is only called once
             m_Dead = true;
 
             // Move the instantiated explosion prefab to the tank's position and turn it on
@@ -83,6 +85,10 @@ namespace Tank
 
             // Turn the tank off
             gameObject.SetActive (false);
+        }
+		
+        public void OnDestroy() {
+	        Destroy(m_ExplosionParticles.gameObject);
         }
     }
 }

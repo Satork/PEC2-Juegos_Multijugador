@@ -1,10 +1,11 @@
-﻿using UnityEngine;
+﻿using Mirror;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace Tank
 {
-    public class TankMovement : MonoBehaviour
+    public class TankMovement : NetworkBehaviour
     {
         public int m_PlayerNumber = 1;              // Used to identify which tank belongs to which player.  This is set by this tank's manager
         public float m_Speed = 12f;                 // How fast the tank moves forward and back
@@ -86,20 +87,23 @@ namespace Tank
         }
 
 
-        private void Update()
-        {
-            EngineAudio();
+        private void Update() {
+	        if (!isLocalPlayer) return;
+	        EngineAudio();
         }
 
         // Event called when this player's 'Move' action is triggered by the New Input System
         public void OnTankMove(InputAction.CallbackContext obj)
         {
-            m_MovementInputValue = obj.ReadValue<Vector2>().y;
+	        //if (!isLocalPlayer) return;
+	        
+	        m_MovementInputValue = obj.ReadValue<Vector2>().y;
         }
 
         // Event called when this player's 'Turn' action is triggered by the New Input System
-        public void OnTankTurn(InputAction.CallbackContext obj)
-        {
+        public void OnTankTurn(InputAction.CallbackContext obj) {
+	        //if(!isLocalPlayer) return;
+	        
             m_TurnInputValue = obj.ReadValue<Vector2>().x;
         }
 
@@ -127,7 +131,8 @@ namespace Tank
 
         private void FixedUpdate()
         {
-            // Adjust the rigidbodies position and orientation in FixedUpdate
+	        if (!isLocalPlayer) return;
+	        // Adjust the rigidbodies position and orientation in FixedUpdate
             Move();
             Turn();
         }
