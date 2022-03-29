@@ -1,4 +1,8 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using System.Linq;
+using Managers;
+using Mirror;
+using UnityEngine;
 
 namespace Complete
 {
@@ -7,29 +11,29 @@ namespace Complete
         public float m_DampTime = 0.2f;                 // Approximate time for the camera to refocus
         public float m_ScreenEdgeBuffer = 4f;           // Space between the top/bottom most target and the screen edge
         public float m_MinSize = 6.5f;                  // The smallest orthographic size the camera can be
-        [HideInInspector] public Transform[] m_Targets; // All the targets the camera needs to encompass
+        public List<Transform> m_Targets;			// All the targets the camera needs to encompass
 
 
         private Camera m_Camera;                        // Used for referencing the camera
         private float m_ZoomSpeed;                      // Reference speed for the smooth damping of the orthographic size
         private Vector3 m_MoveVelocity;                 // Reference velocity for the smooth damping of the position
         private Vector3 m_DesiredPosition;              // The position the camera is moving towards
-
+        
 
         private void Awake()
         {
-            m_Camera = GetComponentInChildren<Camera> ();
+	        m_Camera = GetComponentInChildren<Camera> ();
         }
 
-
-        private void FixedUpdate()
-        {
-            // Move the camera towards a desired position
+        private void FixedUpdate() {
+	        
+	        // Move the camera towards a desired position
             Move();
 
             // Change the size of the camera based
             Zoom();
         }
+        
 
 
         private void Move()
@@ -44,21 +48,17 @@ namespace Complete
 
         private void FindAveragePosition()
         {
-	        if (m_Targets == null) {
-		        return;
-	        }
-	        
-            var averagePos = new Vector3();
+
+	        var averagePos = new Vector3();
             var numTargets = 0;
 
             // Go through all the targets and add their positions together
-            foreach (var target in m_Targets) {
-	            // If the target isn't active, go on to the next one
-	            if (!target.gameObject.activeSelf) continue;
-
-	            // Add to the average and increment the number of targets in the average
-	            averagePos += target.position;
-	            numTargets++;
+            if (m_Targets.Count > 0) {
+	            foreach (var target in m_Targets.Where(target => target.gameObject.activeSelf)) {
+		            // Add to the average and increment the number of targets in the average
+		            averagePos += target.position;
+		            numTargets++;
+	            }
             }
 
             // If there are targets divide the sum of the positions by the number of them to find the average
@@ -76,7 +76,9 @@ namespace Complete
         {
             // Find the required size based on the desired position and smoothly transition to that size
             var requiredSize = FindRequiredSize();
-            m_Camera.orthographicSize = Mathf.SmoothDamp (m_Camera.orthographicSize, requiredSize, ref m_ZoomSpeed, m_DampTime);
+            var orthographicSize = Mathf.SmoothDamp (m_Camera.orthographicSize, requiredSize, ref m_ZoomSpeed, m_DampTime);
+            //RpcSyncCameraWithClients(orthographicSize);
+            m_Camera.orthographicSize = orthographicSize;
         }
 
 
@@ -87,18 +89,9 @@ namespace Complete
 
             // Start the camera's size calculation at zero
             var size = 0f;
-            if (m_Targets != null) {
+            if (m_Targets.Count > 0) {
 	            // Go through all the targets...
-	            foreach (var target in m_Targets) {
-		            // ... and if they aren't active continue on to the next target
-		            if (!target.gameObject.activeSelf) continue;
-
-		            // Otherwise, find the position of the target in the camera's local space
-		            var targetLocalPos = transform.InverseTransformPoint(target.position);
-
-		            // Find the position of the target from the desired position of the camera's local space
-		            var desiredPosToTarget = targetLocalPos - desiredLocalPos;
-
+	            foreach (var desiredPosToTarget in from target in m_Targets where target.gameObject.activeSelf select transform.InverseTransformPoint(target.position) into targetLocalPos select targetLocalPos - desiredLocalPos) {
 		            // Choose the largest out of the current size and the distance of the tank 'up' or 'down' from the camera
 		            size = Mathf.Max(size, Mathf.Abs(desiredPosToTarget.y));
 
@@ -121,12 +114,18 @@ namespace Complete
         {
             // Find the desired position
             FindAveragePosition ();
-
+            
             // Set the camera's position to the desired position without damping
             transform.position = m_DesiredPosition;
 
             // Find and set the required size of the camera
-            m_Camera.orthographicSize = FindRequiredSize();
+            var orthographicSize = FindRequiredSize();
+            //RpcSyncCameraWithClients(orthographicSize);
+            m_Camera.orthographicSize = orthographicSize;
+        }
+
+        public void ResetPosition() {
+	        m_DesiredPosition = Vector3.zero;
         }
     }
 }

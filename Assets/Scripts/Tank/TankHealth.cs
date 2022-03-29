@@ -20,20 +20,21 @@ namespace Tank
         private float m_CurrentHealth;                      // How much health the tank currently has
         private bool m_Dead;                                // Has the tank been reduced beyond zero health yet?
 
-
+	    
         private void Awake ()
         {
             // Instantiate the explosion prefab and get a reference to the particle system on it
-            m_ExplosionParticles = Instantiate (m_ExplosionPrefab).GetComponent<ParticleSystem>();
+            var explosionPrefab = Instantiate(m_ExplosionPrefab);
+	        
+            m_ExplosionParticles = explosionPrefab.GetComponent<ParticleSystem>();
 
+			
             // Get a reference to the audio source on the instantiated prefab
             m_ExplosionAudio = m_ExplosionParticles.GetComponent<AudioSource>();
 
             // Disable the prefab so it can be activated when it's required
             m_ExplosionParticles.gameObject.SetActive (false);
         }
-
-
         private void OnEnable()
         {
 	        // When the tank is enabled, reset the tank's health and whether or not it's dead
@@ -85,10 +86,6 @@ namespace Tank
 
             // Turn the tank off
             gameObject.SetActive (false);
-        }
-		
-        public void OnDestroy() {
-	        Destroy(m_ExplosionParticles.gameObject);
         }
     }
 }

@@ -58,7 +58,7 @@ namespace Complete
 	        // When the value read is higher than the default Button Press Point, the key has been pressed
 	        if (obj.ReadValue<float>() >= InputSystem.settings.defaultButtonPressPoint) Fire();
         }
-
+	    [Command]
         private void Fire() {
             // Create an instance of the shell and store a reference to it's rigidbody
 
@@ -73,6 +73,8 @@ namespace Complete
 
             // Reset the launch force.  This is a precaution in case of missing button events
             m_CurrentLaunchForce = m_MinLaunchForce;
+            
+            NetworkServer.Spawn(shellInstance.gameObject);
         }
     }
 }
