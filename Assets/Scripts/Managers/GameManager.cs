@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Camera;
 using Complete;
 using Mirror;
 using Mirror.Discovery;
@@ -25,16 +26,14 @@ namespace Managers
         //public GameObject m_TankPrefab;             // Reference to the prefab the players will control
         public readonly List<TankManager> m_Tanks = new List<TankManager>();               // A collection of managers for enabling and disabling different aspects of the tanks
 
-        //[SyncVar (hook = nameof(RpcSyncNumRoundsWithClients))] 
+        [SyncVar (hook = nameof(RpcSyncNumRoundsWithClients))] 
         private int m_RoundNumber;                  // Which round the game is currently on
         private WaitForSeconds m_StartWait;         // Used to have a delay whilst the round starts
         private WaitForSeconds m_EndWait;           // Used to have a delay whilst the round or game ends
         private TankManager m_RoundWinner;          // Reference to the winner of the current round.  Used to make an announcement of who won
         private TankManager m_GameWinner;           // Reference to the winner of the game.  Used to make an announcement of who won
-
-        [SyncVar(hook = nameof(RpcSyncTextWithClients)), HideInInspector] public string text;
         
-        private void Start()
+        private void Awake()
         {
             // Create the delays so they only have to be made once
             m_StartWait = new WaitForSeconds (m_StartDelay);
@@ -43,7 +42,6 @@ namespace Managers
             if (isLocalPlayer) {
 	            Debug.Log("IsLocalPlayer");
             }
-            
             //SpawnAllTanks();
             //SetCameraTargets();
 
@@ -57,29 +55,49 @@ namespace Managers
 	        m_MessageText.text = newText;
         }
 
-        // [ClientRpc]
-        // private void RpcSyncNumRoundsWithClients(int oldNum, int newNum) {
-	       //  Debug.Log($"OldNum: {oldNum} vs NewNum: {newNum}");
-        // }
+        [ClientRpc]
+        private void RpcSyncNumRoundsWithClients(int oldNum, int newNum) {
+	        Debug.Log($"OldNum: {oldNum} vs NewNum: {newNum}");
+        }
 
         [ClientRpc]
         public void RpcSyncTargetsWithClients(int num, List<Transform> targets) {
+	        m_CameraControl.m_Targets.Clear();
 	        m_CameraControl.m_Targets.AddRange(targets);
 	        Debug.Log($"Sync NetworkConnections: {num}");
         }
 
         [ClientRpc]
         public void RpcSyncTanksList(List<TankManager> managers) {
+	        m_Tanks.Clear();
 	        m_Tanks.AddRange(managers);
         }
 
         public override void OnStartServer() {
-	        StartCoroutine(GameLoop());
+	        gameObject.SetActive(true);
+	        m_CameraControl.gameObject.SetActive(true);
+	        Debug.Log($"Is active? {gameObject.activeSelf}");
+	        //StartCoroutine(GameLoop());
 	        base.OnStartServer();
+        }
+
+        public void TestOnSpawnTank() {
+	        if (isClient) {
+		        Debug.Log("Is Client");
+	        }
+
+	        if (isLocalPlayer) {
+		        Debug.Log("Is Local Player");
+	        }
+        }
+
+        public override void OnStartClient() {
+	        Debug.Log("Client Started");
         }
 
         public override void OnStartLocalPlayer() {
 	        Debug.Log($"OnStartLocalPlayer: NetworkConnections: {NetworkServer.connections.Count}");
+	        DoUpdate();
 	        base.OnStartLocalPlayer();
 	        // foreach (var _connection in NetworkServer.connections) {
 		       //  m_CameraControl.m_Targets.Add(_connection.Value.identity.transform);
@@ -88,10 +106,13 @@ namespace Managers
         }
         
         // This is called from start and will run each phase of the game one after another
-        public IEnumerator GameLoop()
-        {
+        public IEnumerator GameLoop() {
+	        yield return new WaitUntil(() => netIdentity.connectionToServer.isReady);
+	        Debug.Log($"Is client: {isClient}, IsLocalPlayer: {isLocalPlayer}, IsServer: {isServer}, Local connection: {NetworkServer.localConnection.connectionId}");
+	        yield return null;
 	        // Start off by running the 'RoundStarting' coroutine but don't return until it's finished
             yield return StartCoroutine (RoundStarting());
+            Debug.Log("Round Start Finished");
 
             // Once the 'RoundStarting' coroutine is finished, run the 'RoundPlaying' coroutine but don't return until it's finished
             yield return StartCoroutine (RoundPlaying());
@@ -114,18 +135,19 @@ namespace Managers
         }
 
 
-        private IEnumerator RoundStarting()
-        {
+        private IEnumerator RoundStarting() {
             // As soon as the round starts reset the tanks and make sure they can't move
-            ResetAllTanks();
-            DisableTankControl();
+            //ResetAllTanks();
+            //DisableTankControl();
 
             // Snap the camera's zoom and position to something appropriate for the reset tanks
             m_CameraControl.SetStartPositionAndSize();
 
             // Increment the round number and display text showing the players what round it is
-            m_RoundNumber++;
-            text = "ROUND " + m_RoundNumber;
+            if (isServer) {
+	            m_RoundNumber++;
+            }
+            m_MessageText.text = "ROUND " + m_RoundNumber;
             // Wait for the specified length of time until yielding control back to the game loop
             yield return m_StartWait;
         }
@@ -133,15 +155,16 @@ namespace Managers
 
         private IEnumerator RoundPlaying()
         {
+	        Debug.Log("I am Iiiinnnnnn");
             // As soon as the round begins playing let the players control the tanks
-            EnableTankControl();
+            //EnableTankControl();
 
             // Clear the text from the screen
-            text = string.Empty;
+            m_MessageText.text = string.Empty;
 
             // While there is not one tank left...
             while (!OneTankLeft())
-            {	
+            {
 	            //DoUpdate();
                 // ... return on the next frame
                 yield return null;
@@ -171,7 +194,7 @@ namespace Managers
 
             // Get a message based on the scores and whether or not there is a game winner and display it
             var message = EndMessage();
-            text = message;
+            m_MessageText.text = message;
 
             // Wait for the specified length of time until yielding control back to the game loop
             yield return m_EndWait;
@@ -205,8 +228,21 @@ namespace Managers
         public void DoUpdate() {
 	        if (isServer) {
 		        var num = NetworkServer.connections.Count;
-		        var targets = NetworkServer.connections.Select(connection => connection.Value.identity.transform).ToList();
+		        Debug.Log($"Connections: {num}");
+		        var targets = NetworkServer.connections.Select(connection => connection.Value.identity.transform)
+			        .ToList();
 		        RpcSyncTargetsWithClients(num, targets);
+		        var i = 0;
+		        var managers = NetworkServer.connections.Select(target => new TankManager
+			        { m_Instance = target.Value.identity.gameObject, m_PlayerID = target.Value.connectionId }).ToList();
+				RpcSyncTanksList(managers);
+		        Debug.Log("Updated");
+	        }
+        }
+
+        public void ResetRoundNum() {
+	        if (isServer){
+		        m_RoundNumber = 0;
 	        }
         }
 

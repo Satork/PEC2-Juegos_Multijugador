@@ -1,20 +1,19 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Managers;
+﻿using System.Linq;
 using Mirror;
 using UnityEngine;
 
-namespace Complete
+namespace Camera
 {
-    public class CameraControl : MonoBehaviour
+    public class CameraControl : NetworkBehaviour
     {
         public float m_DampTime = 0.2f;                 // Approximate time for the camera to refocus
         public float m_ScreenEdgeBuffer = 4f;           // Space between the top/bottom most target and the screen edge
         public float m_MinSize = 6.5f;                  // The smallest orthographic size the camera can be
-        public List<Transform> m_Targets;			// All the targets the camera needs to encompass
+        
+        public readonly SyncList<Transform> m_Targets = new SyncList<Transform>();		// All the targets the camera needs to encompass
 
 
-        private Camera m_Camera;                        // Used for referencing the camera
+        private UnityEngine.Camera m_Camera;                        // Used for referencing the camera
         private float m_ZoomSpeed;                      // Reference speed for the smooth damping of the orthographic size
         private Vector3 m_MoveVelocity;                 // Reference velocity for the smooth damping of the position
         private Vector3 m_DesiredPosition;              // The position the camera is moving towards
@@ -22,7 +21,7 @@ namespace Complete
 
         private void Awake()
         {
-	        m_Camera = GetComponentInChildren<Camera> ();
+	        m_Camera = GetComponentInChildren<UnityEngine.Camera> ();
         }
 
         private void FixedUpdate() {
