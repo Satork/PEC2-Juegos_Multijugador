@@ -1098,8 +1098,8 @@ namespace Mirror
                 Debug.LogError($"Spawn scene object not found for {sceneId:X}. Make sure that client and server use exactly the same project. This only happens if the hierarchy gets out of sync.");
 
                 // dump the whole spawnable objects dict for easier debugging
-                //foreach (KeyValuePair<ulong, NetworkIdentity> kvp in spawnableObjects)
-                //    Debug.Log($"Spawnable: SceneId={kvp.Key:X} name={kvp.Value.name}");
+                foreach (KeyValuePair<ulong, NetworkIdentity> kvp in spawnableObjects)
+                    Debug.Log($"Spawnable: SceneId={kvp.Key:X} name={kvp.Value.name}");
             }
             //else Debug.Log($"Client spawn for [netId:{msg.netId}] [sceneId:{msg.sceneId:X}] obj:{identity}");
             return identity;
@@ -1260,7 +1260,7 @@ namespace Mirror
 
         internal static void OnSpawn(SpawnMessage message)
         {
-            // Debug.Log($"Client spawn handler instantiating netId={msg.netId} assetID={msg.assetId} sceneId={msg.sceneId:X} pos={msg.position}");
+            Debug.Log($"Client spawn handler instantiating netId={message.netId} assetID={message.assetId} sceneId={message.sceneId:X} pos={message.position}");
             if (FindOrSpawnObject(message, out NetworkIdentity identity))
             {
                 ApplySpawnPayload(identity, message);

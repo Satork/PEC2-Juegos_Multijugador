@@ -33,38 +33,36 @@ namespace Managers
         private TankManager m_RoundWinner;          // Reference to the winner of the current round.  Used to make an announcement of who won
         private TankManager m_GameWinner;           // Reference to the winner of the game.  Used to make an announcement of who won
         
-        private void Awake()
+        private void Start()
         {
             // Create the delays so they only have to be made once
             m_StartWait = new WaitForSeconds (m_StartDelay);
             m_EndWait = new WaitForSeconds (m_EndDelay);
             
-            if (isLocalPlayer) {
-	            Debug.Log("IsLocalPlayer");
-            }
+            Debug.Log("Start");
             //SpawnAllTanks();
             //SetCameraTargets();
-
+			
             // Once the tanks have been created and the camera is using them as targets, start the game
-            //StartCoroutine (GameLoop ());
+            //StartCoroutine(GameLoop());
         }
 
-        [ClientRpc]
-        private void RpcSyncTextWithClients(string oldText, string newText) {
-	        Debug.Log($"OldText was: {oldText}, NewText is: {newText}");
-	        m_MessageText.text = newText;
+        private void OnEnable() {
+	        m_RoundNumber = 0;
+	        StartCoroutine(GameLoop());
         }
 
-        [ClientRpc]
         private void RpcSyncNumRoundsWithClients(int oldNum, int newNum) {
 	        Debug.Log($"OldNum: {oldNum} vs NewNum: {newNum}");
         }
 
         [ClientRpc]
         public void RpcSyncTargetsWithClients(int num, List<Transform> targets) {
-	        m_CameraControl.m_Targets.Clear();
-	        m_CameraControl.m_Targets.AddRange(targets);
-	        Debug.Log($"Sync NetworkConnections: {num}");
+	       if(isServer) {
+		        m_CameraControl.m_Targets.Clear();
+		        m_CameraControl.m_Targets.AddRange(targets);
+		        Debug.Log($"Sync NetworkConnections: {num}");
+	       }
         }
 
         [ClientRpc]
@@ -110,7 +108,7 @@ namespace Managers
             m_CameraControl.SetStartPositionAndSize();
 
             // Increment the round number and display text showing the players what round it is
-            if (isServer) {
+            if (isServer && !isClientOnly) {
 	            m_RoundNumber++;
             }
             m_MessageText.text = "ROUND " + m_RoundNumber;
@@ -192,7 +190,7 @@ namespace Managers
         }
 
         public void DoUpdate() {
-	        if (isServer) {
+	        if (isServer && !isClientOnly) {
 		        var num = NetworkServer.connections.Count;
 		        Debug.Log($"Connections: {num}");
 		        var targets = NetworkServer.connections.Select(connection => connection.Value.identity.transform)
@@ -207,7 +205,7 @@ namespace Managers
         }
 
         public void ResetRoundNum() {
-	        if (isServer){
+	        if (isServer && !isClientOnly){
 		        m_RoundNumber = 0;
 	        }
         }

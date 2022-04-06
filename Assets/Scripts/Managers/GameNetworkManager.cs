@@ -25,8 +25,6 @@ namespace Managers {
 		public override void OnClientConnect() {
 			base.OnClientConnect();
 			Debug.Log($"Conn: {NetworkConnection.LocalConnectionId}");
-			m_GameManager.gameObject.SetActive(true);
-			m_GameManager.StartCoroutine(m_GameManager.GameLoop());
 			NetworkClient.Send(new SpawnTank());
 		}
 
@@ -49,9 +47,6 @@ namespace Managers {
 			//UpdateCameraTargets();
 			base.OnServerDisconnect(conn);
 			m_GameManager.DoUpdate();
-			if (!conn.identity.isServer) {
-				m_GameManager.StopAllCoroutines();
-			}
 		}
 
 		public override void OnStopServer() {
