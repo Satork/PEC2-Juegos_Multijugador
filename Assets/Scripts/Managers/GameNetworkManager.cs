@@ -17,14 +17,16 @@ namespace Managers {
 		public override void OnStartServer() {
 			base.OnStartServer();
 			Debug.Log("Start Server");
+			
 			m_GameManager.ResetRoundNum();
 			NetworkServer.RegisterHandler<SpawnTank>(OnTankSpawn);
 		}
 
 		public override void OnClientConnect() {
 			base.OnClientConnect();
+			Debug.Log($"Conn: {NetworkConnection.LocalConnectionId}");
 			m_GameManager.gameObject.SetActive(true);
-			Debug.Log("Client Connect");
+			m_GameManager.StartCoroutine(m_GameManager.GameLoop());
 			NetworkClient.Send(new SpawnTank());
 		}
 

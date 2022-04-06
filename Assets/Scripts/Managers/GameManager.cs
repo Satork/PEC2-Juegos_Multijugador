@@ -73,43 +73,9 @@ namespace Managers
 	        m_Tanks.AddRange(managers);
         }
 
-        public override void OnStartServer() {
-	        gameObject.SetActive(true);
-	        m_CameraControl.gameObject.SetActive(true);
-	        Debug.Log($"Is active? {gameObject.activeSelf}");
-	        //StartCoroutine(GameLoop());
-	        base.OnStartServer();
-        }
-
-        public void TestOnSpawnTank() {
-	        if (isClient) {
-		        Debug.Log("Is Client");
-	        }
-
-	        if (isLocalPlayer) {
-		        Debug.Log("Is Local Player");
-	        }
-        }
-
-        public override void OnStartClient() {
-	        Debug.Log("Client Started");
-        }
-
-        public override void OnStartLocalPlayer() {
-	        Debug.Log($"OnStartLocalPlayer: NetworkConnections: {NetworkServer.connections.Count}");
-	        DoUpdate();
-	        base.OnStartLocalPlayer();
-	        // foreach (var _connection in NetworkServer.connections) {
-		       //  m_CameraControl.m_Targets.Add(_connection.Value.identity.transform);
-		       //  Debug.Log($"(ForLoop)NetworkConnections: {NetworkServer.connections.Count}");
-	        // }
-        }
-        
         // This is called from start and will run each phase of the game one after another
         public IEnumerator GameLoop() {
-	        yield return new WaitUntil(() => netIdentity.connectionToServer.isReady);
-	        Debug.Log($"Is client: {isClient}, IsLocalPlayer: {isLocalPlayer}, IsServer: {isServer}, Local connection: {NetworkServer.localConnection.connectionId}");
-	        yield return null;
+	        yield return new WaitForSeconds(2f);
 	        // Start off by running the 'RoundStarting' coroutine but don't return until it's finished
             yield return StartCoroutine (RoundStarting());
             Debug.Log("Round Start Finished");
