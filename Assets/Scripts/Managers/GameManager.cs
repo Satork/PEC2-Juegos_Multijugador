@@ -76,7 +76,7 @@ namespace Managers
 	        yield return new WaitForSeconds(2f);
 	        // Start off by running the 'RoundStarting' coroutine but don't return until it's finished
             yield return StartCoroutine (RoundStarting());
-            Debug.Log("Round Start Finished");
+            //Debug.Log("Round Start Finished");
 
             // Once the 'RoundStarting' coroutine is finished, run the 'RoundPlaying' coroutine but don't return until it's finished
             yield return StartCoroutine (RoundPlaying());
@@ -119,7 +119,6 @@ namespace Managers
 
         private IEnumerator RoundPlaying()
         {
-	        Debug.Log("I am Iiiinnnnnn");
             // As soon as the round begins playing let the players control the tanks
             //EnableTankControl();
 
@@ -203,7 +202,7 @@ namespace Managers
 		        Debug.Log("Updated");
 	        }
         }
-
+		
         public void ResetRoundNum() {
 	        if (isServer && !isClientOnly){
 		        m_RoundNumber = 0;

@@ -17,8 +17,6 @@ namespace Managers {
 		public override void OnStartServer() {
 			base.OnStartServer();
 			Debug.Log("Start Server");
-			
-			m_GameManager.ResetRoundNum();
 			NetworkServer.RegisterHandler<SpawnTank>(OnTankSpawn);
 		}
 
