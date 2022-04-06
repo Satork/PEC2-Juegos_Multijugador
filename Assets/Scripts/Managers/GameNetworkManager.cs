@@ -22,20 +22,12 @@ namespace Managers {
 
 		public override void OnClientConnect() {
 			base.OnClientConnect();
-			Debug.Log($"Conn: {NetworkConnection.LocalConnectionId}");
 			NetworkClient.Send(new SpawnTank());
 		}
 
 		private void OnTankSpawn(NetworkConnectionToClient conn, SpawnTank message) {
 			var spawnLoc = GetStartPosition();
 			var _instance = Instantiate(playerPrefab, spawnLoc.position, spawnLoc.rotation);
-			var tankManager = new TankManager() {
-				m_Instance = _instance,
-				m_PlayerID = conn.connectionId,
-				m_SpawnPoint = spawnLoc
-				//TODO: m_PlayerName = message.playerName,
-				//TODO: m_PlayerColor = message.playerColor
-			};
 			//UpdateCameraTargets();
 			NetworkServer.AddPlayerForConnection(conn, _instance);
 			//Debug.Log($"Count NetworkConnections OnTankSpawn: {NetworkServer.connections.Count}");

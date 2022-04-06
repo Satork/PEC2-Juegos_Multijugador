@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Debug = UnityEngine.Debug;
+using Random = UnityEngine.Random;
 
 namespace Managers
 {
@@ -22,16 +23,17 @@ namespace Managers
         public CameraControl m_CameraControl;       // Reference to the CameraControl script for control during different phases
         
         public Text m_MessageText;                  // Reference to the overlay Text to display winning text, etc
-        
-        //public GameObject m_TankPrefab;             // Reference to the prefab the players will control
-        public readonly List<TankManager> m_Tanks = new List<TankManager>();               // A collection of managers for enabling and disabling different aspects of the tanks
 
+        public readonly SyncList<TankManager> m_Tanks = new SyncList<TankManager>();               // A collection of managers for enabling and disabling different aspects of the tanks
+        
         [SyncVar (hook = nameof(RpcSyncNumRoundsWithClients))] 
         private int m_RoundNumber;                  // Which round the game is currently on
         private WaitForSeconds m_StartWait;         // Used to have a delay whilst the round starts
         private WaitForSeconds m_EndWait;           // Used to have a delay whilst the round or game ends
         private TankManager m_RoundWinner;          // Reference to the winner of the current round.  Used to make an announcement of who won
         private TankManager m_GameWinner;           // Reference to the winner of the game.  Used to make an announcement of who won
+		[SyncVar (hook = nameof(RpcSyncDoUpdate))]
+        private bool doUpdate;
         
         private void Start()
         {
@@ -52,6 +54,10 @@ namespace Managers
 	        StartCoroutine(GameLoop());
         }
 
+        private void RpcSyncDoUpdate(bool oldBool, bool newBool) {
+	        doUpdate = newBool;
+        }
+        
         private void RpcSyncNumRoundsWithClients(int oldNum, int newNum) {
 	        Debug.Log($"OldNum: {oldNum} vs NewNum: {newNum}");
         }
@@ -67,13 +73,18 @@ namespace Managers
 
         [ClientRpc]
         public void RpcSyncTanksList(List<TankManager> managers) {
-	        m_Tanks.Clear();
-	        m_Tanks.AddRange(managers);
+	        if (isServer) {
+		        m_Tanks.Clear();
+		        m_Tanks.AddRange(managers);
+		        Debug.Log($"Nums: {m_Tanks.Count}");
+	        }
         }
 
         // This is called from start and will run each phase of the game one after another
         public IEnumerator GameLoop() {
+	        
 	        yield return new WaitForSeconds(2f);
+	        SetColors();
 	        // Start off by running the 'RoundStarting' coroutine but don't return until it's finished
             yield return StartCoroutine (RoundStarting());
             //Debug.Log("Round Start Finished");
@@ -97,13 +108,15 @@ namespace Managers
                 StartCoroutine (GameLoop());
             }
         }
-
+		
 
         private IEnumerator RoundStarting() {
             // As soon as the round starts reset the tanks and make sure they can't move
             //ResetAllTanks();
             //DisableTankControl();
 
+            //SetColors();
+            
             // Snap the camera's zoom and position to something appropriate for the reset tanks
             m_CameraControl.SetStartPositionAndSize();
 
@@ -114,6 +127,15 @@ namespace Managers
             m_MessageText.text = "ROUND " + m_RoundNumber;
             // Wait for the specified length of time until yielding control back to the game loop
             yield return m_StartWait;
+        }
+
+        public void SetColors() {
+	        Debug.Log("Setting Colors");
+	        foreach (var manager in m_Tanks) {
+		        Debug.Log($"Is manager Instance? {manager.m_Instance != null}, {manager.m_Instance}");
+		        manager.m_PlayerColor = manager.m_Instance.GetComponent<NetworkIdentity>().isLocalPlayer ? Color.blue : Color.red;
+		        manager.Setup(); 
+	        }
         }
 
 
@@ -128,7 +150,12 @@ namespace Managers
             // While there is not one tank left...
             while (!OneTankLeft())
             {
-	            //DoUpdate();
+	            if (doUpdate) {
+		            if (isServer & !isClientOnly) {
+			            doUpdate = false;
+		            }
+		            SetColors();
+	            }
                 // ... return on the next frame
                 yield return null;
             }
@@ -195,11 +222,14 @@ namespace Managers
 		        var targets = NetworkServer.connections.Select(connection => connection.Value.identity.transform)
 			        .ToList();
 		        RpcSyncTargetsWithClients(num, targets);
-		        var i = 0;
-		        var managers = NetworkServer.connections.Select(target => new TankManager
-			        { m_Instance = target.Value.identity.gameObject, m_PlayerID = target.Value.connectionId }).ToList();
-				RpcSyncTanksList(managers);
+		        var managers = NetworkServer.connections.Select(target => new TankManager {
+			        m_Instance = target.Value.identity.gameObject,
+			        m_SpawnPoint = NetworkManager.startPositions[Random.Range(0, NetworkManager.startPositions.Count)]
+		        }).ToList();
+		        RpcSyncTanksList(managers);
+		        //Debug.Log($"Mangers: {managers.Count}, managerInstance: {managers[0].m_Instance}");
 		        Debug.Log("Updated");
+		        doUpdate = true;
 	        }
         }
 		

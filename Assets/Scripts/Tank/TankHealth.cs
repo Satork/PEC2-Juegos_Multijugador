@@ -1,4 +1,5 @@
 ﻿using System;
+using Managers;
 using Mirror;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,6 +18,7 @@ namespace Tank
         
         private AudioSource m_ExplosionAudio;               // The audio source to play when the tank explodes
         private ParticleSystem m_ExplosionParticles;        // The particle system the will play when the tank is destroyed
+        [SyncVar (hook = nameof(RpcSyncHealthWithClients))]
         private float m_CurrentHealth;                      // How much health the tank currently has
         private bool m_Dead;                                // Has the tank been reduced beyond zero health yet?
 
@@ -47,18 +49,28 @@ namespace Tank
 
 
         public void TakeDamage (float amount) {
-
+			Debug.Log($"Current health: {m_CurrentHealth}");
+	        if (!isServer) return;
+	        
 	        // Reduce current health by the amount of damage done
             m_CurrentHealth -= amount;
 
             // Change the UI elements appropriately
-            SetHealthUI();
+            RpcDamage(amount);
 
             // If the current health is at or below zero and it has not yet been registered, call OnDeath
             if (m_CurrentHealth <= 0f && !m_Dead) OnDeath();
         }
 
+        [ClientRpc]
+        public void RpcDamage(float amount) {
+        }
 
+        public void RpcSyncHealthWithClients(float oldHealth, float newHealth) {
+	        m_CurrentHealth = newHealth;
+	        SetHealthUI();
+        }
+        
         private void SetHealthUI()
         {
 	        // Set the slider's value appropriately
@@ -68,7 +80,7 @@ namespace Tank
             m_FillImage.color = Color.Lerp (m_ZeroHealthColor, m_FullHealthColor, m_CurrentHealth / m_StartingHealth);
         }
 
-
+		[ClientRpc]
         private void OnDeath ()
         {
 	        // Set the flag so that this function is only called once
@@ -85,7 +97,7 @@ namespace Tank
             m_ExplosionAudio.Play();
 
             // Turn the tank off
-            gameObject.SetActive (false);
+            gameObject.SetActive(false);
         }
     }
 }

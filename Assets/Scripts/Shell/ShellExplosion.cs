@@ -19,10 +19,10 @@ namespace Shell
         private void Start ()
         {
             // If it isn't destroyed by then, destroy the shell after it's lifetime
-            Destroy (gameObject, m_MaxLifeTime);
+            Invoke(nameof(DestroySelf), m_MaxLifeTime);
         }
-
-
+        
+        [ServerCallback]
         private void OnTriggerEnter (Collider other)
         {
 			// Collect all the colliders in a sphere from the shell's current position to a radius of the explosion radius
@@ -57,7 +57,7 @@ namespace Shell
 	            // Deal this damage to the tank
 	            targetHealth.TakeDamage (damage);
             }
-
+            
             // Un-parent the particles from the shell
             m_ExplosionParticles.transform.parent = null;
 
@@ -69,12 +69,15 @@ namespace Shell
 
             // Once the particles have finished, destroy the gameObject they are on
             var mainModule = m_ExplosionParticles.main;
-            Destroy (m_ExplosionParticles.gameObject, mainModule.duration);
-
+			Destroy(m_ExplosionParticles.gameObject, mainModule.duration);
             // Destroy the shell
-            Destroy (gameObject);
+            NetworkServer.Destroy(gameObject);
         }
 
+        [Server]
+        private void DestroySelf() {
+	        NetworkServer.Destroy(gameObject);
+        }
 
         private float CalculateDamage (Vector3 targetPosition)
         {
