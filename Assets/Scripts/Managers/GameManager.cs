@@ -151,7 +151,7 @@ namespace Managers
             while (!OneTankLeft())
             {
 	            if (doUpdate) {
-		            if (isServer & !isClientOnly) {
+		            if (isServer) {
 			            doUpdate = false;
 		            }
 		            SetColors();
@@ -216,7 +216,7 @@ namespace Managers
         }
 
         public void DoUpdate() {
-	        if (isServer && !isClientOnly) {
+	        if (isServer) {
 		        var num = NetworkServer.connections.Count;
 		        Debug.Log($"Connections: {num}");
 		        var targets = NetworkServer.connections.Select(connection => connection.Value.identity.transform)
@@ -234,7 +234,7 @@ namespace Managers
         }
 		
         public void ResetRoundNum() {
-	        if (isServer && !isClientOnly){
+	        if (isServer){
 		        m_RoundNumber = 0;
 	        }
         }

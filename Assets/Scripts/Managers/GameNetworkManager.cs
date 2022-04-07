@@ -27,9 +27,9 @@ namespace Managers {
 
 		private void OnTankSpawn(NetworkConnectionToClient conn, SpawnTank message) {
 			var spawnLoc = GetStartPosition();
-			var _instance = Instantiate(playerPrefab, spawnLoc.position, spawnLoc.rotation);
+			var instance = Instantiate(playerPrefab, spawnLoc.position, spawnLoc.rotation);
 			//UpdateCameraTargets();
-			NetworkServer.AddPlayerForConnection(conn, _instance);
+			NetworkServer.AddPlayerForConnection(conn, instance);
 			//Debug.Log($"Count NetworkConnections OnTankSpawn: {NetworkServer.connections.Count}");
 			m_GameManager.DoUpdate();
 		}
