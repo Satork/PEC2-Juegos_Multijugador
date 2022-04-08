@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 
 namespace Managers {
 	public class GameNetworkManager : NetworkManager {
-		public GameManager m_GameManager;
+		[HideInInspector] public GameManager m_GameManager;
 		public struct SpawnTank : NetworkMessage {
 			//TODO: add player Name and Color
 		}
@@ -22,6 +22,7 @@ namespace Managers {
 
 		public override void OnClientConnect() {
 			base.OnClientConnect();
+			m_GameManager = FindObjectOfType<GameManager>();
 			NetworkClient.Send(new SpawnTank());
 		}
 
