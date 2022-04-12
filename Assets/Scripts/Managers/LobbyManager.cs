@@ -9,6 +9,7 @@ using TMPro;
 using UnityEditor.UIElements;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+// ReSharper disable Unity.InefficientPropertyAccess
 
 namespace Managers
 {
@@ -59,17 +60,20 @@ namespace Managers
         /* TODO: falta que se muestre el listado de los servidores disponibles */
 
         private IEnumerator UpdateServers() {
-	        var posY = 25;
+	        var posY = -25;
 	        if (discoveredServers.Count == instances.Count) yield break;
 	        Debug.Log($"UpdateServers: {discoveredServers.Count}");
+	        var index = 0;
 	        foreach (var server in discoveredServers) {
 		        var serverInstance = Instantiate(m_ServerPrefab, m_ScrollContent.transform);
+		        var serverRect = serverInstance.GetComponent<RectTransform>();
 		        var serverButton = serverInstance.GetComponent<Button>();
 		        var serverText = serverInstance.GetComponent<TextMeshProUGUI>();
 
-		        serverInstance.transform.position += Vector3.down * posY;
-		        posY += posY;
+		        serverRect.localPosition +=  Vector3.up * posY * index;
+				
 
+		        index++;
 		        serverText.text = $"ServerID: {server.Value.uri}";
 
 		        serverButton.onClick.AddListener(delegate { Connect(server.Value); });
