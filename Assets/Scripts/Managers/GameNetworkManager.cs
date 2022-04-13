@@ -1,51 +1,38 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using Complete;
+﻿using System.Linq;
+using Camera;
 using Mirror;
-using UnityEngine;
-using UnityEngine.SceneManagement;
+using Network;
+using Tank;
 
 namespace Managers {
 	public class GameNetworkManager : NetworkManager {
-		[HideInInspector] public GameManager m_GameManager;
-		public struct SpawnTank : NetworkMessage {
-			//TODO: add player Name and Color
-		}
 
-		public override void OnStartServer() {
-			base.OnStartServer();
-			Debug.Log("Start Server");
-			NetworkServer.RegisterHandler<SpawnTank>(OnTankSpawn);
-		}
+		public override void OnServerAddPlayer(NetworkConnectionToClient conn) {
+			var authData = (TankAuthenticator.AuthRequestMessage)conn.authenticationData;
+			var startPos = GetStartPosition();
+			var instance = startPos != null
+				? Instantiate(playerPrefab, startPos.position, startPos.rotation)
+				: Instantiate(playerPrefab);
 
-		public override void OnClientConnect() {
-			base.OnClientConnect();
-			m_GameManager = FindObjectOfType<GameManager>();
-			NetworkClient.Send(new SpawnTank());
-		}
-
-		private void OnTankSpawn(NetworkConnectionToClient conn, SpawnTank message) {
-			var spawnLoc = GetStartPosition();
-			var instance = Instantiate(playerPrefab, spawnLoc.position, spawnLoc.rotation);
-			//UpdateCameraTargets();
+			if (instance.TryGetComponent(out Tank.PlayerTank player)) {
+				player.playerName = authData.authUsername;
+				player.playerColor = authData.authColor;
+			}
+			
 			NetworkServer.AddPlayerForConnection(conn, instance);
-			//Debug.Log($"Count NetworkConnections OnTankSpawn: {NetworkServer.connections.Count}");
-			m_GameManager.DoUpdate();
-		}
-		public override void OnServerDisconnect(NetworkConnectionToClient conn) {
-			//UpdateCameraTargets();
-			base.OnServerDisconnect(conn);
-			m_GameManager.DoUpdate();
+			CameraControl.instance.m_Targets.Clear();
+			var identities = NetworkServer.connections.Values.Select(client =>  client.identity);
+			CameraControl.instance.m_Targets.AddRange(identities);
 		}
 
-		public override void OnStopServer() {
-			m_GameManager.m_Tanks.Clear();
-			//m_GameManager.m_CameraControl.m_Targets.Clear();
-			m_GameManager.StopAllCoroutines();
-			m_GameManager.ResetRoundNum();
-			//SceneManager.LoadScene(offlineScene);
+		public override void OnServerDisconnect(NetworkConnectionToClient conn) {
+			if (conn.authenticationData != null) {
+				var authData = (TankAuthenticator.AuthRequestMessage)conn.authenticationData;
+				PlayerTank.playersNames.Remove(authData.authUsername);
+			}
+
+			CameraControl.instance.m_Targets.Remove(conn.identity);
+			base.OnServerDisconnect(conn);
 		}
 	}
 }

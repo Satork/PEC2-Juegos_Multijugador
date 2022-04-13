@@ -1,0 +1,329 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using Camera;
+using Complete;
+using Mirror;
+using Mirror.Discovery;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using Debug = UnityEngine.Debug;
+using Random = UnityEngine.Random;
+
+namespace Managers
+{
+    public class GameManager : NetworkBehaviour {
+	    public static readonly HashSet<TankManager> Managers = new HashSet<TankManager>();
+
+        public int m_NumRoundsToWin = 5;            // The number of rounds a single player has to win to win the game
+        public float m_StartDelay = 3f;             // The delay between the start of RoundStarting and RoundPlaying phases
+        public float m_EndDelay = 3f;               // The delay between the end of RoundPlaying and RoundEnding phases
+        public CameraControl m_CameraControl;       // Reference to the CameraControl script for control during different phases
+        
+        public Text m_MessageText;                  // Reference to the overlay Text to display winning text, etc
+
+        public readonly SyncList<TankManager> m_Tanks = new SyncList<TankManager>();               // A collection of managers for enabling and disabling different aspects of the tanks
+
+        public TankManager tank;
+        
+        [HideInInspector, SyncVar(hook = nameof(RpcSyncIsDefaultColorsWithClients))] public bool isDefaultColors;
+        
+        [SyncVar (hook = nameof(RpcSyncNumRoundsWithClients))] 
+        private int m_RoundNumber;                  // Which round the game is currently on
+        private WaitForSeconds m_StartWait;         // Used to have a delay whilst the round starts
+        private WaitForSeconds m_EndWait;           // Used to have a delay whilst the round or game ends
+        private TankManager m_RoundWinner;          // Reference to the winner of the current round.  Used to make an announcement of who won
+        private TankManager m_GameWinner;           // Reference to the winner of the game.  Used to make an announcement of who won
+		[SyncVar (hook = nameof(RpcSyncDoUpdate))]
+        private bool doUpdate;
+        
+        private void Start()
+        {
+            // Create the delays so they only have to be made once
+            m_StartWait = new WaitForSeconds (m_StartDelay);
+            m_EndWait = new WaitForSeconds (m_EndDelay);
+            
+            Debug.Log("Start");
+            //SpawnAllTanks();
+            //SetCameraTargets();
+			
+            // Once the tanks have been created and the camera is using them as targets, start the game
+            //StartCoroutine(GameLoop());
+        }
+
+        private void OnEnable() {
+	        m_RoundNumber = 0;
+	        StartCoroutine(GameLoop());
+        }
+        
+
+        private void RpcSyncDoUpdate(bool oldBool, bool newBool) {
+	        doUpdate = newBool;
+        }
+
+        private void RpcSyncNumRoundsWithClients(int oldNum, int newNum) {
+	        Debug.Log($"OldNum: {oldNum} vs NewNum: {newNum}");
+        }
+
+        private void RpcSyncIsDefaultColorsWithClients(bool oldBool, bool newBool) {
+	        isDefaultColors = newBool;
+        }
+
+        [ClientRpc]
+        public void RpcSyncTargetsWithClients(int num, List<Transform> targets) {
+	       if(isServer) {
+		        m_CameraControl.m_Targets.Clear();
+		        m_CameraControl.m_Targets.AddRange(targets);
+		        Debug.Log($"Sync NetworkConnections: {num}");
+	       }
+        }
+
+        [ClientRpc]
+        public void RpcSyncTanksList(List<TankManager> managers) {
+	        if (isServer) {
+		        m_Tanks.Clear();
+		        m_Tanks.AddRange(managers);
+		        Debug.Log($"Nums: {m_Tanks.Count}");
+	        }
+        }
+
+        public override void OnStartServer() {
+	        tank = (TankManager)connectionToClient.authenticationData;
+        }
+
+        // This is called from start and will run each phase of the game one after another
+        public IEnumerator GameLoop() {
+	        
+	        yield return new WaitForSeconds(2f);
+	        if (isDefaultColors) {
+		        SetDefaultColors();
+	        }
+	        // Start off by running the 'RoundStarting' coroutine but don't return until it's finished
+            yield return StartCoroutine (RoundStarting());
+            //Debug.Log("Round Start Finished");
+
+            // Once the 'RoundStarting' coroutine is finished, run the 'RoundPlaying' coroutine but don't return until it's finished
+            yield return StartCoroutine (RoundPlaying());
+
+            // Once execution has returned here, run the 'RoundEnding' coroutine, again don't return until it's finished
+            yield return StartCoroutine (RoundEnding());
+
+            // This code is not run until 'RoundEnding' has finished.  At which point, check if a game winner has been found
+            if (m_GameWinner != null)
+            {
+                // If there is a game winner, restart the level
+                SceneManager.LoadScene (0);
+            }
+            else
+            {
+                // If there isn't a winner yet, restart this coroutine so the loop continues
+                // Note that this coroutine doesn't yield.  This means that the current version of the GameLoop will end
+                StartCoroutine (GameLoop());
+            }
+        }
+		
+
+        private IEnumerator RoundStarting() {
+            // As soon as the round starts reset the tanks and make sure they can't move
+            //ResetAllTanks();
+            //DisableTankControl();
+
+            //SetColors();
+            
+            // Snap the camera's zoom and position to something appropriate for the reset tanks
+            m_CameraControl.SetStartPositionAndSize();
+
+            // Increment the round number and display text showing the players what round it is
+            if (isServer && !isClientOnly) {
+	            m_RoundNumber++;
+            }
+            m_MessageText.text = "ROUND " + m_RoundNumber;
+            // Wait for the specified length of time until yielding control back to the game loop
+            yield return m_StartWait;
+        }
+
+        public void SetDefaultColors() {
+	        if (!isDefaultColors) return;
+	        Debug.Log("Setting Colors");
+	        foreach (var manager in m_Tanks) {
+		        Debug.Log($"Is manager Instance? {manager.m_Instance != null}, {manager.m_Instance}");
+		        manager.m_PlayerColor = manager.m_Instance.GetComponent<NetworkIdentity>().isLocalPlayer ? Color.blue : Color.red;
+		        manager.Setup(); 
+	        }
+        }
+
+
+        private IEnumerator RoundPlaying()
+        {
+            // As soon as the round begins playing let the players control the tanks
+            //EnableTankControl();
+
+            // Clear the text from the screen
+            m_MessageText.text = string.Empty;
+
+            // While there is not one tank left...
+            while (!OneTankLeft())
+            {
+	            if (doUpdate) {
+		            if (isServer) {
+			            doUpdate = false;
+		            }
+		            SetDefaultColors();
+	            }
+                // ... return on the next frame
+                yield return null;
+            }
+        }
+
+
+        private IEnumerator RoundEnding()
+        {
+            // Stop tanks from moving
+            DisableTankControl();
+
+            // Clear the winner from the previous round
+            m_RoundWinner = null;
+
+            // See if there is a winner now the round is over
+            m_RoundWinner = GetRoundWinner();
+
+            // If there is a winner, increment their score
+            if (m_RoundWinner != null)
+            {
+                m_RoundWinner.m_Wins++;
+            }
+
+            // Now the winner's score has been incremented, see if someone has one the game
+            m_GameWinner = GetGameWinner();
+
+            // Get a message based on the scores and whether or not there is a game winner and display it
+            var message = EndMessage();
+            m_MessageText.text = message;
+
+            // Wait for the specified length of time until yielding control back to the game loop
+            yield return m_EndWait;
+        }
+
+
+        // This is used to check if there is one or fewer tanks remaining and thus the round should end
+        private bool OneTankLeft()
+        {
+            // Skip all rounds logic
+
+			/*
+			// Start the count of tanks left at zero.
+            int numTanksLeft = 0;
+
+            // Go through all the tanks...
+            for (int i = 0; i < m_Tanks.Length; i++)
+            {
+                // ... and if they are active, increment the counter.
+                if (m_Tanks[i].m_Instance.activeSelf)
+                    numTanksLeft++;
+            }
+
+            // If there are one or fewer tanks remaining return true, otherwise return false.
+            return numTanksLeft <= 1; 
+            */
+
+            return false;
+        }
+
+        public void DoUpdate(TankManager manager, bool defaultColors) {
+	        if (isServer) {
+		        var num = NetworkServer.connections.Count;
+		        Debug.Log($"Connections: {num}");
+		        var targets = NetworkServer.connections.Select(connection => connection.Value.identity.transform)
+			        .ToList();
+		        RpcSyncTargetsWithClients(num, targets);
+		        var managers = Networ
+		        managers.AddRange(m_Tanks);
+		        Debug.Log($"Color: {manager.m_PlayerColor}");
+		        managers.Add(manager);
+		        // var managers = NetworkServer.connections.Select(target => new TankManager {
+			       //  m_Instance = target.Value.identity.gameObject,
+			       //  m_SpawnPoint = NetworkManager.startPositions[Random.Range(0, NetworkManager.startPositions.Count)]
+		        // }).ToList();
+		        isDefaultColors = defaultColors;
+		        RpcSyncTanksList(managers);
+		        //Debug.Log($"Mangers: {managers.Count}, managerInstance: {managers[0].m_Instance}");
+		        Debug.Log("Updated");
+		        doUpdate = true;
+	        }
+	        
+        }
+		
+        public void ResetRoundNum() {
+	        if (isServer){
+		        m_RoundNumber = 0;
+	        }
+        }
+
+        // This function is to find out if there is a winner of the round
+        // This function is called with the assumption that 1 or fewer tanks are currently active
+        private TankManager GetRoundWinner() {
+	        // Go through all the tanks...
+	        return m_Tanks.FirstOrDefault(tank => tank.m_Instance.activeSelf);
+
+	        // If none of the tanks are active it is a draw so return null
+        }
+
+
+        // This function is to find out if there is a winner of the game
+        private TankManager GetGameWinner() {
+	        // Go through all the tanks...
+	        return m_Tanks.FirstOrDefault(t => t.m_Wins == m_NumRoundsToWin);
+
+	        // If no tanks have enough rounds to win, return null
+        }
+
+
+        // Returns a string message to display at the end of each round
+        private string EndMessage()
+        {
+            // By default when a round ends there are no winners so the default end message is a draw
+            var message = "DRAW!";
+
+            // If there is a winner then change the message to reflect that
+            if (m_RoundWinner != null)
+                message = m_RoundWinner.m_ColoredPlayerText + " WINS THE ROUND!";
+
+            // Add some line breaks after the initial message
+            message += "\n\n\n\n";
+
+            // Go through all the tanks and add each of their scores to the message
+            message = m_Tanks.Aggregate(message, (current, t) => current + (t.m_ColoredPlayerText + ": " + t.m_Wins + " WINS\n"));
+
+            // If there is a game winner, change the entire message to reflect that
+            if (m_GameWinner != null)
+                message = m_GameWinner.m_ColoredPlayerText + " WINS THE GAME!";
+
+            return message;
+        }
+
+
+        // This function is used to turn all the tanks back on and reset their positions and properties
+        private void ResetAllTanks() {
+	        foreach (var tank in m_Tanks) {
+		        tank.Reset();
+	        }
+        }
+
+
+        private void EnableTankControl() {
+	        foreach (var tank in m_Tanks) {
+		        tank.EnableControl();
+	        }
+        }
+
+
+        private void DisableTankControl() {
+	        foreach (var tank in m_Tanks) {
+		        tank.DisableControl();
+	        }
+        }
+    }
+}

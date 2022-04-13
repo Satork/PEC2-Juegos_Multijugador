@@ -1,4 +1,7 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using Mirror;
 using UnityEngine;
 
@@ -10,17 +13,19 @@ namespace Camera
         public float m_ScreenEdgeBuffer = 4f;           // Space between the top/bottom most target and the screen edge
         public float m_MinSize = 6.5f;                  // The smallest orthographic size the camera can be
         
-        public readonly SyncList<Transform> m_Targets = new SyncList<Transform>();		// All the targets the camera needs to encompass
+        public readonly SyncList<Transform> m_Targets3 = new SyncList<Transform>();		// All the targets the camera needs to encompass
 
+        public readonly SyncList<NetworkIdentity> m_Targets = new SyncList<NetworkIdentity>();
 
         private UnityEngine.Camera m_Camera;                        // Used for referencing the camera
         private float m_ZoomSpeed;                      // Reference speed for the smooth damping of the orthographic size
         private Vector3 m_MoveVelocity;                 // Reference velocity for the smooth damping of the position
         private Vector3 m_DesiredPosition;              // The position the camera is moving towards
-        
 
-        private void Awake()
-        {
+        public static CameraControl instance;
+
+        private void Awake() {
+	        instance = this;
 	        m_Camera = GetComponentInChildren<UnityEngine.Camera> ();
         }
 
@@ -32,8 +37,6 @@ namespace Camera
             // Change the size of the camera based
             Zoom();
         }
-        
-
 
         private void Move()
         {
@@ -55,7 +58,7 @@ namespace Camera
             if (m_Targets.Count > 0) {
 	            foreach (var target in m_Targets.Where(target => target.gameObject.activeSelf)) {
 		            // Add to the average and increment the number of targets in the average
-		            averagePos += target.position;
+		            averagePos += target.transform.position;
 		            numTargets++;
 	            }
             }
@@ -90,7 +93,11 @@ namespace Camera
             var size = 0f;
             if (m_Targets.Count > 0) {
 	            // Go through all the targets...
-	            foreach (var desiredPosToTarget in from target in m_Targets where target.gameObject.activeSelf select transform.InverseTransformPoint(target.position) into targetLocalPos select targetLocalPos - desiredLocalPos) {
+	            foreach (var desiredPosToTarget in from target in m_Targets
+		            where target.gameObject.activeSelf
+		            select transform.InverseTransformPoint(target.transform.position)
+		            into targetLocalPos
+		            select targetLocalPos - desiredLocalPos) {
 		            // Choose the largest out of the current size and the distance of the tank 'up' or 'down' from the camera
 		            size = Mathf.Max(size, Mathf.Abs(desiredPosToTarget.y));
 

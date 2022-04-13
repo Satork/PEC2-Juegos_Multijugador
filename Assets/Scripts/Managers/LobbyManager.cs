@@ -1,13 +1,9 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using Mirror;
 using Mirror.Discovery;
 using TMPro;
-using UnityEditor.UIElements;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 // ReSharper disable Unity.InefficientPropertyAccess
 
@@ -16,48 +12,77 @@ namespace Managers
     public class LobbyManager : MonoBehaviour
     {
 	    private readonly Dictionary<long, ServerResponse> discoveredServers = new Dictionary<long, ServerResponse>();
-        Vector2 scrollViewPos = Vector2.zero;
 
         public NetworkDiscovery networkDiscovery;
+        
+        [Header("Layouts")]
         public GameObject m_MenuLayout;
         public GameObject m_JoinLayout;
+        public GameObject m_PlayerHostLayout;
+	    
+        [Header("UI Elements")]
         public GameObject m_ScrollContent;
-
+		
+        [Header("Prefabs")]
         public GameObject m_ServerPrefab;
-
-        private List<GameObject> instances = new List<GameObject>();
-
+		
+        [Header("Tank Renderers")]
+        public GameObject m_JoinTankRender;
+        public GameObject m_CreateTankRender;
+        
+        
+        private readonly List<GameObject> instances = new List<GameObject>();
+        private readonly List<GameObject> layouts = new List<GameObject>();
+        
         private void Start() {
-	        m_MenuLayout.SetActive(true);
-	        m_JoinLayout.SetActive(false);
+	        layouts.Add(m_MenuLayout);
+	        layouts.Add(m_JoinLayout);
+	        layouts.Add(m_PlayerHostLayout);
+
+	        foreach (var layout in layouts) {
+		        layout.SetActive(layout.Equals(m_MenuLayout));
+	        }
+	        
+	        m_JoinTankRender.SetActive(true);
+	        m_CreateTankRender.SetActive(false);
         }
 
         public void NuevoServidor(){
             discoveredServers.Clear();
             NetworkManager.singleton.StartServer();
             networkDiscovery.AdvertiseServer();
-
         }
         public void NuevaPartida(){
-            discoveredServers.Clear();
-            NetworkManager.singleton.StartHost();
-            networkDiscovery.AdvertiseServer();
+            foreach (var layout in layouts) {
+	            layout.SetActive(layout.Equals(m_PlayerHostLayout));
+            }
+            m_CreateTankRender.SetActive(true);
+            m_JoinTankRender.SetActive(false);
         }
         public void UnirsePartida(){
             discoveredServers.Clear();
             networkDiscovery.StartDiscovery();
-            m_MenuLayout.SetActive(false);
-            m_JoinLayout.SetActive(true);
+            foreach (var layout in layouts) {
+	            layout.SetActive(layout.Equals(m_JoinLayout));
+            }
         }
 
         public void Return() {
 	        instances.ForEach(Destroy);
 	        instances.Clear();
 	        discoveredServers.Clear();
-	        m_MenuLayout.SetActive(true);
-	        m_JoinLayout.SetActive(false);
+	        foreach (var layout in layouts) {
+		        layout.SetActive(layout.Equals(m_MenuLayout));
+	        }
+	        m_CreateTankRender.SetActive(false);
+	        m_JoinTankRender.SetActive(true);
         }
-        /* TODO: falta que se muestre el listado de los servidores disponibles */
+
+        public void StartHost() {
+	        discoveredServers.Clear();
+	        NetworkManager.singleton.StartHost();
+	        networkDiscovery.AdvertiseServer();
+        }
 
         private IEnumerator UpdateServers() {
 	        var posY = -25;
@@ -95,7 +120,6 @@ namespace Managers
             networkDiscovery.StopDiscovery();
             NetworkManager.singleton.StartClient(info.uri);
         }
-        
     }
 
 }
