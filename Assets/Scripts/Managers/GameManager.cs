@@ -13,7 +13,7 @@ namespace Managers {
 		public float m_StartDelay = 3f;
 		//public float m_EndDelay = 3f;
 
-		
+	
 		public Text m_Message;
 
 		private WaitForSeconds m_StartWait;
@@ -41,6 +41,9 @@ namespace Managers {
 			while (true) {
 				yield return null;
 			}
+		}
+
+		public override void OnStartServer() {
 		}
 	}
 }

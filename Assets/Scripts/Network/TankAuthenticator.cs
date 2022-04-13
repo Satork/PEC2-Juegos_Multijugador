@@ -1,7 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using Managers;
 using Mirror;
 using Tank;
 using UnityEngine;
@@ -13,8 +11,7 @@ using UnityEngine;
 
 namespace Network {
 	public class TankAuthenticator : NetworkAuthenticator {
-
-		readonly HashSet<NetworkConnection> connectionsPendingDisconnect = new HashSet<NetworkConnection>();
+		private readonly HashSet<NetworkConnection> connectionsPendingDisconnect = new HashSet<NetworkConnection>();
 
 		
 		[Header("Player Data")] public string m_PlayerUsername;
@@ -73,6 +70,8 @@ namespace Network {
 
 			if (!PlayerTank.playersNames.Contains(msg.authUsername)) {
 
+				PlayerTank.playersNames.Add(msg.authUsername);
+				
 				conn.authenticationData = msg;
 
 				var authResponseMessage = new AuthResponseMessage {
