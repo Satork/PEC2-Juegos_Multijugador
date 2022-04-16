@@ -53,7 +53,7 @@ namespace Managers {
 		}
 		public void CreateNpcs(){
 			for (int i=0; i<cantidadEnemigos; i++){
-				Vector3 spawnAleatorio = new Vector3(UnityEngine.Random.Range(-10,11), 0, UnityEngine.Random.Range(-10,11));
+				Vector3 spawnAleatorio = new Vector3(UnityEngine.Random.Range(-40,41), 3, UnityEngine.Random.Range(-40,41));
 				var instance = Instantiate(npcPrefab, spawnAleatorio, Quaternion.identity);
             	NetworkServer.Spawn(instance);
 				if (instance.TryGetComponent(out PlayerTank npc1)) {
