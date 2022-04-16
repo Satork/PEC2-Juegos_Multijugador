@@ -9,6 +9,7 @@ namespace Managers {
 	public class GameNetworkManager : NetworkManager {
         private bool npcCreated = false;
 		public GameObject npcPrefab;
+		[Range(0, 4)] public int cantidadEnemigos;
 
 		public override void OnServerAddPlayer(NetworkConnectionToClient conn) {
 			var authData = (TankAuthenticator.AuthRequestMessage)conn.authenticationData;
@@ -25,11 +26,16 @@ namespace Managers {
 
 			NetworkServer.AddPlayerForConnection(conn, instance);
 			CameraControl.instance.m_Targets.Clear();
-			var identities = NetworkServer.connections.Values.Select(client => client.identity).ToList();
-			CameraControl.instance.m_Targets.AddRange(identities);
+			var tanques =  NetworkServer.spawned.Values.ToList();
+			foreach (var item in tanques)
+			{
+				if( item.ToString().Contains("Clone"))
+				{
+					CameraControl.instance.m_Targets.Add(item);
+				}
+			}
 
 			if(!npcCreated){
-				Debug.Log("EPA");
 				CreateNpcs();
 			    npcCreated = true;
 			}
@@ -46,12 +52,15 @@ namespace Managers {
 			base.OnServerDisconnect(conn);
 		}
 		public void CreateNpcs(){
-			Vector3 spawnAleatorio1 = new Vector3(UnityEngine.Random.Range(-10,11), 0, UnityEngine.Random.Range(-10,11));
-			var instance1 = Instantiate(npcPrefab, spawnAleatorio1, Quaternion.identity);
-            NetworkManager.singleton.spawnPrefabs.Add(instance1);
-			if (instance1.TryGetComponent(out PlayerTank npc1)) {
-				CameraControl.instance.m_Targets.Add(npc1.GetComponent<NetworkIdentity>());
+			for (int i=0; i<cantidadEnemigos; i++){
+				Vector3 spawnAleatorio = new Vector3(UnityEngine.Random.Range(-10,11), 0, UnityEngine.Random.Range(-10,11));
+				var instance = Instantiate(npcPrefab, spawnAleatorio, Quaternion.identity);
+            	NetworkServer.Spawn(instance);
+				if (instance.TryGetComponent(out PlayerTank npc1)) {
+					CameraControl.instance.m_Targets.Add(npc1.GetComponent<NetworkIdentity>());
+				}
 			}
+			
 			
 		}
 	}

@@ -10,14 +10,11 @@ public class NpcManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        //tanque.m_PlayerColor = Color.yellow;
+        tanque.m_PlayerColor = Color.yellow;
         tanque.SetOriginalColor();
-        
+        tanque.m_PlayerName = "CPU";
+        tanque.SetPlayerName();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    
 }

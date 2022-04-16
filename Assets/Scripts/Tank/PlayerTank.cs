@@ -25,7 +25,7 @@ namespace Tank {
 		}
 
 		private void OnPlayerNameChange(string _, string newName) {
-			m_PlayerNameLabel.text = m_PlayerName;
+			SetPlayerName();
 		}
 
 		private void OnPlayerColorChange(Color _, Color newColor) {
@@ -50,14 +50,14 @@ namespace Tank {
 			}
 		}
 
-		public override void OnStartServer() {
+		/*public override void OnStartServer() {
 			var authData = (TankAuthenticator.AuthRequestMessage)connectionToClient.authenticationData;
 			m_PlayerName = authData.authUsername;
 			m_PlayerColor = authData.authColor;
 			m_UseDefaultColors = authData.useDefaultColors;
 			
 			Debug.Log("Server Started");
-		}
+		}*/
 
 		public void SetDefaultColors() {
 			Debug.Log("Setting Colors");
@@ -78,6 +78,9 @@ namespace Tank {
 			foreach (var meshRenderer in renderers) {
 				meshRenderer.material.color = m_PlayerColor;
 			}
+		}
+		public void SetPlayerName() {
+			m_PlayerNameLabel.text = m_PlayerName;
 		}
 	}
 }
