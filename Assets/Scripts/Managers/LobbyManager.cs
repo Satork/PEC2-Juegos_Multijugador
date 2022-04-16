@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
@@ -38,11 +39,9 @@ namespace Managers
 	        layouts.Add(m_MenuLayout);
 	        layouts.Add(m_JoinLayout);
 	        layouts.Add(m_PlayerHostLayout);
-
 	        foreach (var layout in layouts) {
 		        layout.SetActive(layout.Equals(m_MenuLayout));
 	        }
-	        
 	        m_JoinTankRender.SetActive(true);
 	        m_CreateTankRender.SetActive(false);
         }

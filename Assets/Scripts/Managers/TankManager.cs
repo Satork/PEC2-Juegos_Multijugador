@@ -15,7 +15,7 @@ namespace Managers
         // different phases of the game
 
         public string m_PlayerName = string.Empty;
-        public Color m_PlayerColor = Color.black;                             // This is the color this tank will be tinted
+        public Color m_PlayerColor = Color.black;               // This is the color this tank will be tinted
         public Transform m_SpawnPoint;                          // The position and direction the tank will have when it spawns
         [HideInInspector] public string m_ColoredPlayerText;    // A string that represents the player with their number colored to match their tank
         [HideInInspector] public GameObject m_Instance;         // A reference to the instance of the tank when it is created

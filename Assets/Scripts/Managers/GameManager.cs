@@ -12,6 +12,7 @@ namespace Managers {
 		
 		public float m_StartDelay = 3f;
 		//public float m_EndDelay = 3f;
+		public GameObject tanque;
 
 	
 		public Text m_Message;
