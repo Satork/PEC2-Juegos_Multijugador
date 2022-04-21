@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Camera;
 using Mirror;
 using Network;
@@ -7,10 +8,6 @@ using UnityEngine;
 
 namespace Managers {
 	public class GameNetworkManager : NetworkManager {
-        private bool npcCreated = false;
-		public GameObject npcPrefab;
-		[Range(0, 4)] public int cantidadEnemigos;
-
 		public override void OnServerAddPlayer(NetworkConnectionToClient conn) {
 			var authData = (TankAuthenticator.AuthRequestMessage)conn.authenticationData;
 			var startPos = GetStartPosition();
@@ -21,25 +18,17 @@ namespace Managers {
 			if (instance.TryGetComponent(out PlayerTank player)) {
 				player.m_PlayerName = authData.authUsername;
 				player.m_PlayerColor = authData.authColor;
-				player.m_UseDefaultColors = authData.useDefaultColors;
 			}
 
 			NetworkServer.AddPlayerForConnection(conn, instance);
-			CameraControl.instance.m_Targets.Clear();
-			var tanques =  NetworkServer.spawned.Values.ToList();
-			foreach (var item in tanques)
-			{
-				if( item.ToString().Contains("Clone"))
-				{
-					CameraControl.instance.m_Targets.Add(item);
-				}
-			}
+			var players = NetworkServer.connections.Values.ToList()
+				.Select(client => client.identity).ToList();
 
-			if(!npcCreated){
-				CreateNpcs();
-			    npcCreated = true;
+			foreach (var networkIdentity in players) {
+				if (CameraControl.instance.m_Targets.Contains(networkIdentity))
+					CameraControl.instance.m_Targets.Remove(networkIdentity);
+				CameraControl.instance.m_Targets.Add(networkIdentity);
 			}
-			
 		}
 
 		public override void OnServerDisconnect(NetworkConnectionToClient conn) {
@@ -50,18 +39,6 @@ namespace Managers {
 
 			CameraControl.instance.m_Targets.Remove(conn.identity);
 			base.OnServerDisconnect(conn);
-		}
-		public void CreateNpcs(){
-			for (int i=0; i<cantidadEnemigos; i++){
-				Vector3 spawnAleatorio = new Vector3(UnityEngine.Random.Range(-40,41), 3, UnityEngine.Random.Range(-40,41));
-				var instance = Instantiate(npcPrefab, spawnAleatorio, Quaternion.identity);
-            	NetworkServer.Spawn(instance);
-				if (instance.TryGetComponent(out PlayerTank npc1)) {
-					CameraControl.instance.m_Targets.Add(npc1.GetComponent<NetworkIdentity>());
-				}
-			}
-			
-			
 		}
 	}
 }

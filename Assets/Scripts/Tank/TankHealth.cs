@@ -18,7 +18,7 @@ namespace Tank
         
         private AudioSource m_ExplosionAudio;               // The audio source to play when the tank explodes
         private ParticleSystem m_ExplosionParticles;        // The particle system the will play when the tank is destroyed
-        [SyncVar (hook = nameof(RpcSyncHealthWithClients))]
+        [SyncVar (hook = nameof(SyncHealth))]
         private float m_CurrentHealth;                      // How much health the tank currently has
         private bool m_Dead;                                // Has the tank been reduced beyond zero health yet?
 
@@ -27,7 +27,14 @@ namespace Tank
         {
             // Instantiate the explosion prefab and get a reference to the particle system on it
             var explosionPrefab = Instantiate(m_ExplosionPrefab);
-	        
+
+            if (connectionToClient != null) {
+	            NetworkServer.Spawn(explosionPrefab, gameObject);
+            }
+            else {
+	            NetworkServer.Spawn(explosionPrefab);
+            }
+            
             m_ExplosionParticles = explosionPrefab.GetComponent<ParticleSystem>();
 
 			
@@ -49,25 +56,17 @@ namespace Tank
 
 
         public void TakeDamage (float amount) {
-			Debug.Log($"Current health: {m_CurrentHealth}");
 	        if (!isServer) return;
 	        
 	        // Reduce current health by the amount of damage done
             m_CurrentHealth -= amount;
 
-            // Change the UI elements appropriately
-            RpcDamage(amount);
-
             // If the current health is at or below zero and it has not yet been registered, call OnDeath
             if (m_CurrentHealth <= 0f && !m_Dead) OnDeath();
         }
 
-        [ClientRpc]
-        public void RpcDamage(float amount) {
-        }
-
-        public void RpcSyncHealthWithClients(float oldHealth, float newHealth) {
-	        m_CurrentHealth = newHealth;
+        public void SyncHealth(float _, float newHealth) {
+	        Debug.Log($"Current health: {m_CurrentHealth}");
 	        SetHealthUI();
         }
         

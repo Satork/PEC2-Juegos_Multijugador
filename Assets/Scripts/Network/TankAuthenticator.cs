@@ -16,14 +16,12 @@ namespace Network {
 		
 		[Header("Player Data")] public string m_PlayerUsername;
 		public Color m_PlayerUserColor;
-		public bool m_UseDefaultColors;
 
 		#region Messages
 
 		public struct AuthRequestMessage : NetworkMessage {
 			public string authUsername;
 			public Color authColor;
-			public bool useDefaultColors;
 		}
 
 		public struct AuthResponseMessage : NetworkMessage {
@@ -127,11 +125,6 @@ namespace Network {
 		public void SetColor(Color color) {
 			m_PlayerUserColor = color;
 		}
-
-		public bool SetDefaultColors {
-			get => m_UseDefaultColors;
-			set => m_UseDefaultColors = value;
-		}
 		
 		/// <summary>
 		/// Called on client from StartClient to initialize the Authenticator
@@ -149,7 +142,6 @@ namespace Network {
 			var authRequestMessage = new AuthRequestMessage {
 				authUsername = m_PlayerUsername,
 				authColor = m_PlayerUserColor,
-				useDefaultColors = m_UseDefaultColors
 			};
 
 			NetworkClient.connection.Send(authRequestMessage);

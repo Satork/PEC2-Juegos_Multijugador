@@ -1,7 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using Complete;
+using Managers;
 using Mirror;
 using Network;
+using Telepathy;
 using TMPro;
 using UnityEngine;
 
@@ -11,7 +15,12 @@ namespace Tank {
 		public static readonly HashSet<string> playersNames = new HashSet<string>();
 
 		public TextMeshProUGUI m_PlayerNameLabel;
-
+		
+		// Tank references
+		private TankHealth m_Health;
+		private TankMovement m_Movement;
+		private TankShooting m_Shooting;
+		
 		[SyncVar(hook = nameof(OnPlayerNameChange))] public string m_PlayerName;
 		[SyncVar(hook = nameof(OnPlayerColorChange))] public Color m_PlayerColor;
 		[SyncVar(hook = nameof(OnDefaultColorUse))]public bool m_UseDefaultColors;
@@ -22,6 +31,12 @@ namespace Tank {
 
 		private void Awake() {
 			instance = this;
+		}
+
+		private void Start() {
+			m_Health = GetComponent<TankHealth>();
+			m_Movement = GetComponent<TankMovement>();
+			m_Shooting = GetComponent<TankShooting>();
 		}
 
 		private void OnPlayerNameChange(string _, string newName) {
@@ -38,6 +53,8 @@ namespace Tank {
 			}
 		}
 		
+		
+		
 		public override void OnStartClient() {
 			Debug.Log("Client Started");
 			if (!m_UseDefaultColors) return;
@@ -50,14 +67,12 @@ namespace Tank {
 			}
 		}
 
-		/*public override void OnStartServer() {
+		public override void OnStartServer() {
 			var authData = (TankAuthenticator.AuthRequestMessage)connectionToClient.authenticationData;
 			m_PlayerName = authData.authUsername;
-			m_PlayerColor = authData.authColor;
-			m_UseDefaultColors = authData.useDefaultColors;
-			
+			m_UseDefaultColors = ServerData.useDefaultColors;
 			Debug.Log("Server Started");
-		}*/
+		}
 
 		public void SetDefaultColors() {
 			Debug.Log("Setting Colors");

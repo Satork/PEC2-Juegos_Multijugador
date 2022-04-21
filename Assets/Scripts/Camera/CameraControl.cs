@@ -13,8 +13,6 @@ namespace Camera
         public float m_ScreenEdgeBuffer = 4f;           // Space between the top/bottom most target and the screen edge
         public float m_MinSize = 6.5f;                  // The smallest orthographic size the camera can be
         
-        public readonly SyncList<Transform> m_Targets3 = new SyncList<Transform>();		// All the targets the camera needs to encompass
-
         public readonly SyncList<NetworkIdentity> m_Targets = new SyncList<NetworkIdentity>();
 
         private UnityEngine.Camera m_Camera;                        // Used for referencing the camera
