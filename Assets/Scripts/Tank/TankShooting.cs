@@ -31,8 +31,6 @@ namespace Complete
         private void OnDisable() => isDisabled = true;
 
         private void Start() {
-	        if (connectionToClient == null)
-		        return;
 	        // Unity 2020 New Input System
             // Get a reference to the EventSystem for this player
             var ev = GameObject.Find ("EventSystem").GetComponent<EventSystem>();
@@ -53,12 +51,32 @@ namespace Complete
         public void OnFire(InputAction.CallbackContext obj) {
 	        if (isDisabled || !isLocalPlayer) return;
 	        // When the value read is higher than the default Button Press Point, the key has been pressed
-	        if (obj.ReadValue<float>() >= InputSystem.settings.defaultButtonPressPoint) Fire();
+	        if (obj.ReadValue<float>() >= InputSystem.settings.defaultButtonPressPoint) CmdFire();
         }
         
-        [Command(requiresAuthority = false)]
-	    public void Fire() {
-		    Debug.Log("Fire!");
+        [Server]
+        public void NpcFire() {
+	        //Debug.Log("Fire!");
+		    
+	        // Create an instance of the shell and store a reference to it's rigidbody
+	        var shellInstance = Instantiate(m_Shell, m_FireTransform.position, m_FireTransform.rotation);
+
+	        // Set the shell's velocity to the launch force in the fire position's forward direction
+	        shellInstance.AddForce(m_CurrentLaunchForce * m_FireTransform.forward, ForceMode.Impulse);
+
+	        // Change the clip to the firing clip and play it
+	        m_ShootingAudio.clip = m_FireClip;
+	        m_ShootingAudio.Play();
+
+	        // Reset the launch force.  This is a precaution in case of missing button events
+	        m_CurrentLaunchForce = m_MinLaunchForce;
+            
+	        NetworkServer.Spawn(shellInstance.gameObject);
+        }
+        
+        [Command]
+	    public void CmdFire() {
+		    //Debug.Log("Fire!");
 		    
             // Create an instance of the shell and store a reference to it's rigidbody
             var shellInstance = Instantiate(m_Shell, m_FireTransform.position, m_FireTransform.rotation);

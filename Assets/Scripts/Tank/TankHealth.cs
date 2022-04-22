@@ -22,10 +22,9 @@ namespace Tank
         private float m_CurrentHealth;                      // How much health the tank currently has
         private bool m_Dead;                                // Has the tank been reduced beyond zero health yet?
 
-	    
-        private void Awake ()
-        {
-            // Instantiate the explosion prefab and get a reference to the particle system on it
+
+        public override void OnStartClient() {
+	        // Instantiate the explosion prefab and get a reference to the particle system on it
             var explosionPrefab = Instantiate(m_ExplosionPrefab);
 
             if (connectionToClient != null) {
@@ -66,7 +65,7 @@ namespace Tank
         }
 
         public void SyncHealth(float _, float newHealth) {
-	        Debug.Log($"Current health: {m_CurrentHealth}");
+	        //Debug.Log($"Current health: {m_CurrentHealth}");
 	        SetHealthUI();
         }
         

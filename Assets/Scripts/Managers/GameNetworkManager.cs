@@ -1,10 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using Camera;
 using Mirror;
 using Network;
 using Tank;
-using UnityEngine;
 
 namespace Managers {
 	public class GameNetworkManager : NetworkManager {
@@ -27,7 +25,14 @@ namespace Managers {
 			foreach (var networkIdentity in players) {
 				if (CameraControl.instance.m_Targets.Contains(networkIdentity))
 					CameraControl.instance.m_Targets.Remove(networkIdentity);
+
+				if (networkIdentity.TryGetComponent(out PlayerTank playerTank)) {
+					if (!GameManager.instance.m_Tanks.Contains(playerTank))
+						GameManager.instance.m_Tanks.Add(playerTank);
+				}
+
 				CameraControl.instance.m_Targets.Add(networkIdentity);
+				
 			}
 		}
 
@@ -37,6 +42,7 @@ namespace Managers {
 				PlayerTank.playersNames.Remove(authData.authUsername);
 			}
 
+			GameManager.instance.m_Tanks.Remove(conn.identity.GetComponent<PlayerTank>());
 			CameraControl.instance.m_Targets.Remove(conn.identity);
 			base.OnServerDisconnect(conn);
 		}

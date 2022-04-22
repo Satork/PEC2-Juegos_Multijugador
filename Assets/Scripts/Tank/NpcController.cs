@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Complete;
 using Mirror;
@@ -17,14 +18,15 @@ namespace Tank {
 		[HideInInspector, SyncVar(hook = nameof(OnNpcNameChange))] public string m_NpcName;
 		[HideInInspector, SyncVar(hook = nameof(OnColorChange))] public Color m_NpcColor;
 
-		private MeshRenderer[] m_MeshRenderer;
+		private List<MeshRenderer> m_MeshRenderer = new List<MeshRenderer>();
 		private TankShooting m_Shooting;
 		
 		private bool isAttacking;
-		
-		private void Start() {
+
+		public override void OnStartServer() {
+			
 			m_Shooting = GetComponent<TankShooting>();
-			m_MeshRenderer = GetComponentsInChildren<MeshRenderer>();
+			m_MeshRenderer = GetComponentsInChildren<MeshRenderer>().ToList();
 			m_NpcColor = Color.yellow;
 			m_NpcName = "NPC";
 		}
@@ -46,19 +48,19 @@ namespace Tank {
 			transform.rotation = Quaternion.LookRotation(target);
 			yield return null;
 			
-			m_Shooting.Fire();
+			m_Shooting.NpcFire();
 			yield return new WaitForSeconds(m_Cadence);
 
 			isAttacking = false;
 		}
 
 		private void OnNpcNameChange(string _, string newName) {
-			m_TankNameLabel.text = m_NpcName;
+			m_TankNameLabel.text = newName;
 		}
 
 		private void OnColorChange(Color _, Color newColor) {
 			foreach (var meshRenderer in m_MeshRenderer) {
-				meshRenderer.material.color = m_NpcColor;
+				meshRenderer.material.color = newColor;
 			}
 		}
 
@@ -69,6 +71,17 @@ namespace Tank {
 			return Physics.Raycast(transform.position, dir, dist, -1);
 		}
 
+		[Server]
+		public void DisableControls() {
+			m_Shooting.enabled = false;
+		}
+
+		[Server]
+		public void EnableControls() {
+			m_Shooting.enabled = true;
+		}
+		
+		
 		private void OnDrawGizmos() {
 			Gizmos.color = Color.white;
 			Gizmos.DrawWireSphere(transform.position, m_AttackDistance);
